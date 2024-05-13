@@ -1,11 +1,13 @@
 import argparse
 import json
+import os
+import matplotlib.pyplot as plt
 
 from collections import Counter
 from pathlib import Path
 
-ANSWER_CATEGORY = ["functional reasoning", "object state recognition", "spatial reasoning", "attribute recognition", 
-                   "object localization", "object recognition", "world knowledge", "functional reasoning"]
+ANSWER_CATEGORY = ["functional reasoning", "object state recognition", "spatial reasoning",
+                   "attribute recognition", "object localization", "object recognition", "world knowledge"]
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -25,6 +27,12 @@ def parse_args() -> argparse.Namespace:
     )
     args = parser.parse_args()
     return args
+
+def make_autopct(values):
+    def my_autopct(pct):
+        absolute = int(pct/100.*sum(values))    
+        return "{:.1f}%\n({:d})".format(pct, absolute)
+    return my_autopct
 
 # Load dataset
 def load_hm3d(dataset_path):
@@ -53,20 +61,26 @@ def load_all(dataset_path):
 class Inspection:
     def __init__(self, dataset):
         self.dataset = dataset
+        os.makedirs(os.path.join(os.getcwd(), "data", "results"), exist_ok=True)
+        
+    def draw_pie_chart(self, data, title, filename):
+        plt.figure()
+        plt.pie(data.values(), labels=data.keys(), autopct=make_autopct(data.values()), explode=[0.05]*len(data))
+        plt.title(title)
+        plt.savefig(os.path.join(os.getcwd(), "data", "results", filename))
+        plt.close()
 
     def inspect(self):
         self.questions_by_category()
         self.questions_per_setting()
         self.do_extra_answers_exist()
-        self.which_episodes_were_uesd()
+        self.which_episodes_were_used()
 
     def questions_by_category(self):
         category_counts = Counter([item["category"] for item in self.dataset])
-
-        print("-------- Questions by Category --------")
-        for key, value in category_counts.items():
-            print(f"{key}: {value}")
-        print("---------------------------------------")
+        
+        # Draw a pie chart (Questions by Category)
+        self.draw_pie_chart(category_counts, "Questions by Category", "questions_by_category.svg")
 
     def questions_per_setting(self):
         pass
@@ -74,12 +88,10 @@ class Inspection:
     def do_extra_answers_exist(self):
         has_extra_answers = Counter("true" if "extra_answers" in item else "false" for item in self.dataset)
 
-        print("-------- Do extra answers exist --------")
-        for key, value in has_extra_answers.items():
-            print(f"{key}: {value}")
-        print("----------------------------------------")
+        # Draw a pie chart (Do extra answers exist)
+        self.draw_pie_chart(has_extra_answers, "Do extra answers exist", "extra_answers_exist.svg")
 
-    def which_episodes_were_uesd(self):
+    def which_episodes_were_used(self):
         used_episodes = Counter([item["episode_history"] for item in self.dataset])
 
         print("-------- Which episodes were used --------")
@@ -95,7 +107,6 @@ def main(args: argparse.Namespace):
     elif args.dataset == "all":
         dataset = load_all(args.dataset_path)
 
-    print(dataset[0])
     inspection = Inspection(dataset)
     inspection.inspect()
 
