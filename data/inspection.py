@@ -64,23 +64,29 @@ class Inspection:
         os.makedirs(os.path.join(os.getcwd(), "data", "results"), exist_ok=True)
         
     def draw_pie_chart(self, data, title, filename):
-        plt.figure()
+        plt.figure(figsize=(8, 5))
         plt.pie(data.values(), labels=data.keys(), autopct=make_autopct(data.values()), explode=[0.05]*len(data))
-        plt.title(title)
+        plt.suptitle(title, fontweight='bold', fontsize=14)
         plt.savefig(os.path.join(os.getcwd(), "data", "results", filename))
         plt.close()
 
     def inspect(self):
+        self.overall_inspection()
         self.questions_by_category()
         self.questions_per_setting()
         self.do_extra_answers_exist()
         self.which_episodes_were_used()
+        
+    def overall_inspection(self):
+        print("-------- Overall Inspection --------")
+        print(f"Total number of questions: {len(self.dataset)}")
+        print("------------------------------------")
 
     def questions_by_category(self):
         category_counts = Counter([item["category"] for item in self.dataset])
         
         # Draw a pie chart (Questions by Category)
-        self.draw_pie_chart(category_counts, "Questions by Category", "questions_by_category.svg")
+        self.draw_pie_chart(category_counts, f"Questions by Category", "questions_by_category.svg")
 
     def questions_per_setting(self):
         pass
@@ -89,7 +95,7 @@ class Inspection:
         has_extra_answers = Counter("true" if "extra_answers" in item else "false" for item in self.dataset)
 
         # Draw a pie chart (Do extra answers exist)
-        self.draw_pie_chart(has_extra_answers, "Do extra answers exist", "extra_answers_exist.svg")
+        self.draw_pie_chart(has_extra_answers, f"Do extra answers exist", "extra_answers_exist.svg")
 
     def which_episodes_were_used(self):
         used_episodes = Counter([item["episode_history"] for item in self.dataset])
