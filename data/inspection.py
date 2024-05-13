@@ -107,9 +107,13 @@ class Inspection:
 
     def do_extra_answers_exist(self):
         has_extra_answers = Counter("true" if "extra_answers" in item else "false" for item in self.dataset)
+        has_extra_answers_ol = Counter("true" if "extra_answers" in item else "false" for item in self.dataset if item["category"] == "object localization")
 
         # Draw a pie chart (Do extra answers exist)
         self.draw_pie_chart(has_extra_answers, f"Do extra answers exist", "extra_answers_exist.svg")
+
+        # Draw a pie chart (Do extra answers exist in Object Localization)
+        self.draw_pie_chart(has_extra_answers_ol, f"Do extra answers exist in Object Localization", "extra_answers_exist_ol.svg")
 
     def which_episodes_were_used(self):
         used_episodes = Counter([item["episode_history"] for item in self.dataset])
