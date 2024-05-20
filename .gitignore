@@ -13,7 +13,7 @@ data/*
 !data/*.md
 !data/*.json
 !data/hm3d/*
-!data/inspection/*
+!data/inspection/
 !data/scannet/*
 
 assets/demo_frames/*
