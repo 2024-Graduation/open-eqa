@@ -17,3 +17,4 @@ data/*
 !data/scannet/*
 
 assets/demo_frames/*
+openeqa/models/*

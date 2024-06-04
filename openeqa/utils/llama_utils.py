@@ -12,26 +12,35 @@ from typing import List, Union
 
 import torch
 import transformers
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 
 def enable_full_determinism(seed: int):
     transformers.enable_full_determinism(seed)
 
+quantization_config = BitsAndBytesConfig(load_in_4bit=True)
 
 class LLaMARunner:
     def __init__(
         self,
         model: Union[str, Path],
+        load_in_4bit: bool = False,
         load_in_8bit: bool = False,
         use_fast_kernels: bool = False,
     ):
+        if load_in_4bit:
+            quantization_config = BitsAndBytesConfig(load_in_4bit=True)
+        elif load_in_8bit:
+            quantization_config = BitsAndBytesConfig(load_in_8bit=True)
+        else:
+            quantization_config = BitsAndBytesConfig()
+
         self.model = AutoModelForCausalLM.from_pretrained(
             model,
             return_dict=True,
-            load_in_8bit=load_in_8bit,
             device_map="auto",
             attn_implementation="sdpa" if use_fast_kernels else None,
+            quantization_config=quantization_config
         )
         self.model.eval()
 
@@ -82,6 +91,11 @@ if __name__ == "__main__":
         required=True,
     )
     parser.add_argument(
+        "--load-in-4bit",
+        action="store_true",
+        help="load model in 4bit mode (default: false)",
+    )
+    parser.add_argument(
         "--load-in-8bit",
         action="store_true",
         help="load model in 8bit mode (default: false)",
@@ -94,6 +108,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     llama = LLaMARunner(
         args.model,
+        load_in_4bit=args.load_in_4bit,
         load_in_8bit=args.load_in_8bit,
         use_fast_kernels=args.use_fast_kernels,
     )

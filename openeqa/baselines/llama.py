@@ -35,6 +35,11 @@ def parse_args() -> argparse.Namespace:
         help="model name (defaults to model path folder name)",
     )
     parser.add_argument(
+        "--load-in-4bit",
+        action="store_true",
+        help="load model in 4bit mode (default: false)",
+    )
+    parser.add_argument(
         "--load-in-8bit",
         action="store_true",
         help="load model in 8bit mode (default: false)",
@@ -116,6 +121,7 @@ def main(args: argparse.Namespace):
     # load model
     model = LLaMARunner(
         args.model_path,
+        load_in_4bit=args.load_in_4bit,
         load_in_8bit=args.load_in_8bit,
         use_fast_kernels=args.use_fast_kernels,
     )
