@@ -29,7 +29,7 @@ class LLaMARunner:
         use_fast_kernels: bool = False,
     ):
         if load_in_4bit:
-            quantization_config = BitsAndBytesConfig(load_in_4bit=True)
+            quantization_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16)
         elif load_in_8bit:
             quantization_config = BitsAndBytesConfig(load_in_8bit=True)
         else:
@@ -40,7 +40,7 @@ class LLaMARunner:
             return_dict=True,
             device_map="auto",
             attn_implementation="sdpa" if use_fast_kernels else None,
-            quantization_config=quantization_config
+            quantization_config=quantization_config,
         )
         self.model.eval()
 
