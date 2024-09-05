@@ -23,8 +23,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset",
         type=Path,
-        default="data/open-eqa-v0.json",
-        help="path to dataset (default: data/open-eqa-v0.json)",
+        default="data/open-eqa-mini-hm3d-v0.json",
+        help="path to dataset (default: data/open-eqa-mini-hm3d-v0.json)",
     )
     parser.add_argument(
         "--output-directory",
