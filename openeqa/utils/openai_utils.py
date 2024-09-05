@@ -79,6 +79,60 @@ def call_openai_api(
     assert len(completion.choices) == 1
     return completion.choices[0].message.content
 
+@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
+def call_openai_assitant_api(
+    messages: list,
+    attachment_paths: list,
+    model: str = "gpt-4",
+):
+    client = openai.OpenAI()
+    file_assistant = client.beta.assistants.create( # TODO: design prompt for the assistant
+        name="Scenegraph Anaylst Assistant",
+        instructions="You are an ...",
+        model=model,
+        tools=[{"type": "file_search"}],
+    )
+
+    # Create a vector store called "scenegraph"
+    vector_store = client.beta.vector_stores.create(name="scenegraph")
+    file_streams = [open(path, "rb") for path in attachment_paths]
+    
+    # Use the upload and poll SDK helper to upload the files, add them to the vector store,
+    # and poll the status of the file batch for completion.
+    file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+        vector_store_id=vector_store.id, files=file_streams
+    )
+
+    print("Uploaded files to vector store with ID: {}".format(vector_store.id))
+    print(file_batch.status)
+
+    # Update the assistant to use the vector store for file search
+    file_assistant = client.beta.assistants.update(
+        assistant_id=file_assistant.id,
+        tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
+    )
+
+    # Create a thread and attach the file to the message
+    query_thread = client.beta.threads.create(
+        messages_in_thread=[
+            {
+                "role": messages[0]["role"],
+                "content": messages[0]["content"],
+                "attachments": [
+                    {"file_id" : file_batch.files[0].id, "tools" : ["file_search"]},
+                ],
+            }
+        ]
+    )
+
+    run = client.beta.threads.runs.create_and_poll(
+        thread_id=query_thread.id, assistant_id=file_assistant.id
+    )
+
+    messages = list(client.beta.threads.messages.list(thread_id=query_thread.id, run_id=run.id))
+
+    response = messages[0].content[0].text # {"answer" : "answer", "scenegraph" : {}}
+    return response
 
 if __name__ == "__main__":
     set_openai_key(key=None)

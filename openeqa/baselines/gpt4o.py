@@ -14,10 +14,12 @@ import tqdm
 
 from openeqa.utils.openai_utils import (
     call_openai_api,
+    call_openai_assitant_api,
     prepare_openai_vision_messages,
     set_openai_key,
 )
 from openeqa.utils.prompt_utils import load_prompt
+from openeqa.utils.scenegraph_utils import ScenegraphManager
 
 
 def parse_args() -> argparse.Namespace:
@@ -93,8 +95,47 @@ def parse_args() -> argparse.Namespace:
     )
     return args
 
+def ask_question_with_attachment( #* called when there is a scenegraph for the episode of question
+    question: str,
+    image_paths: List,
+    attachment_paths: List, # scenegraph
+    image_size: int = 512,
+    openai_key: Optional[str] = None,
+    openai_model: str = "gpt-4o",
+    openai_seed: int = 1234,
+    openai_max_tokens: int = 128,
+    openai_temperature: float = 0.2,
+    force: bool = False,
+) -> Optional[str]:
+    try:
+        set_openai_key(key=openai_key)
 
-def ask_question(
+        prompt = load_prompt("gpt4o") # TODO: load the prompt for updating scenegraph and answering the question - after engineering prompt
+        prefix, suffix = prompt.split("User Query:")
+        suffix = "User Query:" + suffix.format(question=question)
+
+        messages = prepare_openai_vision_messages(
+            prefix=prefix, suffix=suffix, image_paths=image_paths, image_size=image_size
+        )
+        assert len(messages) == 1
+
+        output = call_openai_assitant_api(
+            messages=messages,
+            attachment_paths=attachment_paths,
+            model=openai_model,
+            seed=openai_seed,
+            max_tokens=openai_max_tokens,
+            temperature=openai_temperature,
+        )
+        
+        return output
+    
+    except Exception as e:
+        if not force:
+            traceback.print_exc()
+            raise e
+
+def ask_question( #* called when there is no scenegraph for the episode of question
     question: str,
     image_paths: List,
     image_size: int = 512,
@@ -108,7 +149,7 @@ def ask_question(
     try:
         set_openai_key(key=openai_key)
 
-        prompt = load_prompt("gpt4o")
+        prompt = load_prompt("gpt4o") # TODO: load the prompt for creating scenegraph
         prefix, suffix = prompt.split("User Query:")
         suffix = "User Query:" + suffix.format(question=question)
 
@@ -145,7 +186,7 @@ def main(args: argparse.Namespace):
     completed = [item["question_id"] for item in results]
 
     # process data
-    for idx, item in enumerate(tqdm.tqdm(dataset)):
+    for idx, item in enumerate(tqdm.tqdm(dataset)): #* 각 question에 대해 반복
         if args.dry_run and idx >= 5:
             break
 
@@ -154,25 +195,50 @@ def main(args: argparse.Namespace):
         if question_id in completed:
             continue  # skip existing
 
-        # extract scene paths
-        folder = args.frames_directory / item["episode_history"]
+        #* extract scene paths
+        # TODO: call function to get indices - after merge other branch
+        episode_id = item["episode_history"]
+        folder = args.frames_directory / episode_id
         frames = sorted(folder.glob("*-rgb.png"))
         indices = np.round(np.linspace(0, len(frames) - 1, args.num_frames)).astype(int)
         paths = [str(frames[i]) for i in indices]
 
+        # TODO: check whether all frames are seen - after merge other branch
+        #* check for existence of the episode's scenegraph
+        scenegraph_manager = ScenegraphManager()
+        is_there = scenegraph_manager.has_episode(episode_id)
+
         # generate answer
         question = item["question"]
-        answer = ask_question(
-            question=question,
-            image_paths=paths,
-            image_size=args.image_size,
-            openai_model=args.model,
-            openai_seed=args.seed,
-            openai_max_tokens=args.max_tokens,
-            openai_temperature=args.temperature,
-            force=args.force,
-        )
 
+        if is_there: #* if there is a scenegraph for the episode
+            output = ask_question_with_attachment(
+                question=question,
+                image_paths=paths,
+                attachment_paths=[scenegraph_manager.get_scenegraph_path(episode_id)],
+                image_size=args.image_size,
+                openai_model=args.model,
+                openai_seed=args.seed,
+                openai_max_tokens=args.max_tokens,
+                openai_temperature=args.temperature,
+                force=args.force,
+            )
+        else: #* if there is no scenegraph for the episode
+            output = ask_question(
+                question=question,
+                image_paths=paths,
+                image_size=args.image_size,
+                openai_model=args.model,
+                openai_seed=args.seed,
+                openai_max_tokens=args.max_tokens,
+                openai_temperature=args.temperature,
+                force=args.force,
+            )
+        
+        #* save updated_scenegraph
+        scenegraph_manager.update_scenegraph(episode_id, output["scenegraph"])
+        answer = output["answer"]
+    
         # store results
         results.append({"question_id": question_id, "answer": answer})
         json.dump(results, args.output_path.open("w"), indent=2)
