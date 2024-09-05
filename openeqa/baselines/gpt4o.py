@@ -236,6 +236,8 @@ def main(args: argparse.Namespace):
             )
         
         #* save updated_scenegraph
+        # string to dict
+        output = json.loads(output)
         scenegraph_manager.update_scenegraph(episode_id, output["scenegraph"])
         answer = output["answer"]
     
