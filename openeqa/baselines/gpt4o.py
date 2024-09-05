@@ -110,7 +110,7 @@ def ask_question_with_attachment( #* called when there is a scenegraph for the e
     try:
         set_openai_key(key=openai_key)
 
-        prompt = load_prompt("gpt4o") # TODO: load the prompt for updating scenegraph and answering the question - after engineering prompt
+        prompt = load_prompt("gpt4o-upate-sg") # TODO: load the prompt for updating scenegraph and answering the question - after engineering prompt
         prefix, suffix = prompt.split("User Query:")
         suffix = "User Query:" + suffix.format(question=question)
 
@@ -149,7 +149,7 @@ def ask_question( #* called when there is no scenegraph for the episode of quest
     try:
         set_openai_key(key=openai_key)
 
-        prompt = load_prompt("gpt4o") # TODO: load the prompt for creating scenegraph
+        prompt = load_prompt("gpt4o-base-sg") # TODO: load the prompt for creating scenegraph
         prefix, suffix = prompt.split("User Query:")
         suffix = "User Query:" + suffix.format(question=question)
 
@@ -187,7 +187,7 @@ def main(args: argparse.Namespace):
 
     # process data
     for idx, item in enumerate(tqdm.tqdm(dataset)): #* 각 question에 대해 반복
-        if args.dry_run and idx >= 5:
+        if args.dry_run and idx >= 2:
             break
 
         # skip completed questions
@@ -212,6 +212,7 @@ def main(args: argparse.Namespace):
         question = item["question"]
 
         if is_there: #* if there is a scenegraph for the episode
+            print("Scenegraph for episode: {}".format(episode_id))
             output = ask_question_with_attachment(
                 question=question,
                 image_paths=paths,
@@ -224,6 +225,7 @@ def main(args: argparse.Namespace):
                 force=args.force,
             )
         else: #* if there is no scenegraph for the episode
+            print("No scenegraph for episode: {}".format(episode_id))
             output = ask_question(
                 question=question,
                 image_paths=paths,
@@ -236,10 +238,14 @@ def main(args: argparse.Namespace):
             )
         
         #* save updated_scenegraph
-        # string to dict
-        output = json.loads(output)
-        scenegraph_manager.update_scenegraph(episode_id, output["scenegraph"])
-        answer = output["answer"]
+        print("output: {}".format(output))
+        # TODO: string to dict - after engineering prompt
+        # output = json.loads(output)
+        prefix, suffix = output.split("json\n")
+        print("suffix: ", suffix)
+        # scenegraph_manager.update_scenegraph(episode_id, json.loads(suffix))
+        # answer = output["answer"]
+        answer = output
     
         # store results
         results.append({"question_id": question_id, "answer": answer})

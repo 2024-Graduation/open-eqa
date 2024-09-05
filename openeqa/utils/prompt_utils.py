@@ -13,6 +13,8 @@ PROMPT_NAME_TO_PATH = {
     "blind-llm": DEFAULT_DATA_DIR / Path("blind-llm.txt"),
     "gpt4v": DEFAULT_DATA_DIR / Path("gpt4v.txt"),
     "gpt4o": DEFAULT_DATA_DIR / Path("gpt4o.txt"),
+    "gpt4o-base-sg": DEFAULT_DATA_DIR / Path("gpt4o-base-sg.txt"),
+    "gpt4o-update-sg": DEFAULT_DATA_DIR / Path("gpt4o-update-sg.txt"),
     "claude3-vision": DEFAULT_DATA_DIR / Path("claude3-vision.txt"),
     "gemini-pro-vision": DEFAULT_DATA_DIR / Path("gemini-pro-vision.txt"),
 }

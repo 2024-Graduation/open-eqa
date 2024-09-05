@@ -1,0 +1,5 @@
+You will be shown a set of images that have been collected from a single indoor location.
+You should make a scenegraph based on the information you found out from a set of images.
+I will give the Scenegraph structure json file.
+Refer to this, You have to make and give a new scenegraph to json file.
+User Query: none
