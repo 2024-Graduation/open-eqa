@@ -166,6 +166,8 @@ def main(args: argparse.Namespace):
         paths = [str(frames[i]) for i in indices]
 
         # TODO: check whether all frames are seen - after merge other branch
+
+        
         #* check for existence of the episode's scenegraph
         is_there = scenegraph_manager.has_episode(episode_id)
 
@@ -200,13 +202,16 @@ def main(args: argparse.Namespace):
         #* save updated_scenegraph
         print("output: {}".format(output))
         # TODO: string to dict - after engineering prompt
-        SCENEGRAPH_SEPARATOR = "User Query:"
-        # output = json.loads(output)
-        prefix, suffix = output.split(SCENEGRAPH_SEPARATOR)
-        print("suffix: ", suffix)
-        # scenegraph_manager.update_scenegraph(episode_id, json.loads(suffix))
-        # answer = output["answer"]
-        answer = output
+        SCENEGRAPH_SEPARATOR = "Scenegraph: "
+        prefix, output_json = output.split(SCENEGRAPH_SEPARATOR)
+        output_json = json.loads(output_json)
+        print("output_json: ", output_json)
+
+        scenegraph = output_json["scenegraph"]
+        scenegraph_manager.update_scenegraph(episode_id, json.loads(scenegraph))
+        
+        #* extract answer
+        answer = output_json["answer"]
     
         # store results
         results.append({"question_id": question_id, "answer": answer})

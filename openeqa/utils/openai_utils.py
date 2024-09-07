@@ -65,7 +65,7 @@ def call_openai_api(
     max_tokens: int = 32,
     temperature: float = 0.2,
     verbose: bool = False,
-):
+) -> str:
     client = openai.OpenAI()
     completion = client.chat.completions.create(
         model=model,
