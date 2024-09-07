@@ -1,0 +1,99 @@
+[
+    {
+      "question": "What is hanging from the ceiling in the bedroom?",
+      "answer": "A dome light",
+      "category": "object recognition",
+      "question_id": "08e8e5fd-31a3-466b-afd6-fa171f1d9de4",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk"
+    },
+    {
+      "question": "What is the gold object on the nightstand?",
+      "answer": "A nightlamp",
+      "category": "object recognition",
+      "question_id": "6b8f1b52-25fa-47bc-a3a6-a2a43e834605",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk"
+    },
+    {
+      "question": "What material is the dining table?",
+      "answer": "Glass",
+      "category": "attribute recognition",
+      "question_id": "0d7f83ac-e0ae-405c-bdea-4eb5a9d1f0a0",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk"
+    },
+    {
+      "question": "What color is the smoke detector?",
+      "answer": "Yellow or off-white",
+      "category": "attribute recognition",
+      "question_id": "eabae5f2-1193-4ac2-8862-8821156cb347",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk"
+    },
+    {
+      "question": "Is there space under the kitchen bar area?",
+      "answer": "No.",
+      "category": "spatial understanding",
+      "question_id": "8543767d-7d30-4307-96c2-20ef8ef48160",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk"
+    },
+    {
+      "question": "What is in between the two white cabinets in the kitchen?",
+      "answer": "The microwave",
+      "category": "spatial understanding",
+      "question_id": "cd5a15ff-d222-4745-8238-eee9afb27b79",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk"
+    },
+    {
+      "question": "Is the bedroom window open?",
+      "answer": "No.",
+      "category": "object state recognition",
+      "question_id": "2cee5bf8-1297-4cee-8e8b-d808503cdfb1",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk"
+    },
+    {
+      "question": "Is the coat closet in the living room open?",
+      "answer": "No.",
+      "category": "object state recognition",
+      "question_id": "9acfbdd3-bc51-4010-ae1e-a28a949731d5",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk"
+    },
+    {
+      "question": "Where can I sit and eat if I don't want to use the dining table?",
+      "answer": "Use the kitchen bar counter",
+      "category": "functional reasoning",
+      "question_id": "bf4960d4-469f-49bc-8594-9b994049fa77",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk"
+    },
+    {
+      "question": "What can I use to cool down the living room?",
+      "answer": "The thermostat",
+      "category": "functional reasoning",
+      "question_id": "6a13d4a2-4866-40e7-8f10-d1ec12573dc2",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk"
+    },
+    {
+      "question": "Is this home on the first floor?",
+      "answer": "No",
+      "category": "world knowledge",
+      "question_id": "41693f7e-4192-495e-9b4e-b238432c6424",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk"
+    },
+    {
+      "question": "Does this house have pull lever door handles or knobs?",
+      "answer": "Pull lever",
+      "category": "world knowledge",
+      "question_id": "f7b4bb17-549b-4e62-9586-ce3844198554",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk"
+    },
+    {
+      "question": "Which room should I go to see the car?",
+      "answer": "The bedroom",
+      "category": "object localization",
+      "question_id": "678d0eea-2f1e-41c4-bd6d-324e4819c63a",
+      "episode_history": "mini-hm3d-v0/013-hm3d-svBbv1Pavdk",
+      "extra_answers": [
+        "The bedroom",
+        "The living room",
+        "bedroom next to the dining room",
+        "room with the white bed"
+      ]
+    }
+]

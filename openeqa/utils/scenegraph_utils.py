@@ -57,6 +57,15 @@ class ScenegraphManager():
         with open(self.get_scenegraph_path(episode_id), 'w') as file:
             json.dump(new_scenegraph, file)
             print("Scenegraph saved to file: ", self.get_scenegraph_path(episode_id))
+    
+    def delete_episode_file(self, episode_id) -> None:
+        if not self.has_episode(episode_id):
+            raise Exception(f"Deleting episode failed: Episode {episode_id} does not exist.")
+        else:
+            print("Deleting episode file: ", episode_id)
+            episode_name = self.__get_episode_name(episode_id)
+            os.remove(self.get_scenegraph_path(episode_id))
+            del self.scenegraphs_per_episode[episode_name]
 
         
 

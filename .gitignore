@@ -15,6 +15,7 @@ data/*
 !data/hm3d/*
 !data/inspection/
 !data/scannet/*
+!data/mini-hm3d-episodes/
 
 assets/demo_frames/*
 openeqa/models/*

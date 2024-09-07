@@ -6,6 +6,7 @@
 import argparse
 import json
 import os
+import random
 import traceback
 from pathlib import Path
 from typing import List, Optional
@@ -88,6 +89,11 @@ def parse_args() -> argparse.Namespace:
         "--dry-run",
         action="store_true",
         help="only process the first 5 questions",
+    )
+    parser.add_argument(
+        "--test-base-prompt",
+        action="store_true",
+        help="test prompt performance",
     )
     args = parser.parse_args()
     args.output_directory.mkdir(parents=True, exist_ok=True)
@@ -181,9 +187,22 @@ def create_base_scenegraph(
 def main(args: argparse.Namespace):
     # check for openai api key
     assert "OPENAI_API_KEY" in os.environ
+    
+    #* test base prompt
+    if args.test_base_prompt:
+        dataset = Path("data/mini-hm3d-episodes/")
+        questions = []
+        for episode in os.listdir(dataset):
+            # 한 episode 당 하나의 question만 추출. 랜덤
+            with open(dataset / episode, "r") as file:
+                data = json.load(file)
+                random.shuffle(data)
+                questions.append(data[0])
 
-    # load questions dataset
-    questions = json.load(args.dataset.open("r"))
+    else:
+        # load questions dataset
+        questions = json.load(args.dataset.open("r"))
+    
     print("found {:,} questions".format(len(questions)))
 
     # load results
@@ -198,7 +217,7 @@ def main(args: argparse.Namespace):
     
     # process data
     for idx, item in enumerate(tqdm.tqdm(questions)): #* 각 question에 대해 반복
-        if args.dry_run and idx >= 3:
+        if args.dry_run and idx >= 5:
             break
 
         # skip completed questions
@@ -209,6 +228,19 @@ def main(args: argparse.Namespace):
         #* extract scene paths
         episode_id = item["episode_history"] # mini-hm3d-v0/episode_name
         paths = extract_frames(episode_id, args.num_frames, args.frames_directory, extractor)
+
+        if args.test_base_prompt:
+            print("testing base prompt")
+            # delete existing scenegraph
+            if scenegraph_manager.has_episode(episode_id):
+                scenegraph_manager.delete_episode_file(episode_id)
+            create_base_scenegraph(episode_id=episode_id,
+                                      image_paths=paths,
+                                      scenegraph_manager=scenegraph_manager,
+                                      max_tokens=args.max_tokens,
+                                      image_size=args.image_size,
+                                      force=args.force)
+            continue
 
         #* check for existence of the episode's scenegraph and create if not found
         if scenegraph_manager.has_episode(episode_id) == False:
@@ -236,7 +268,6 @@ def main(args: argparse.Namespace):
         )
         
         print("output: {}".format(output))
-        print("--------------------")
 
         ##* save updated_scenegraph
         SCENEGRAPH_SEPARATOR = "Scenegraph: "
