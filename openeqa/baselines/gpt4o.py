@@ -95,46 +95,6 @@ def parse_args() -> argparse.Namespace:
     )
     return args
 
-def ask_question_with_attachment( #* called when there is a scenegraph for the episode of question
-    question: str,
-    image_paths: List,
-    attachment_paths: List, # scenegraph
-    image_size: int = 512,
-    openai_key: Optional[str] = None,
-    openai_model: str = "gpt-4o",
-    openai_seed: int = 1234,
-    openai_max_tokens: int = 128,
-    openai_temperature: float = 0.2,
-    force: bool = False,
-) -> Optional[str]:
-    try:
-        set_openai_key(key=openai_key)
-
-        prompt = load_prompt("gpt4o-upate-sg") # TODO: load the prompt for updating scenegraph and answering the question - after engineering prompt
-        prefix, suffix = prompt.split("User Query:")
-        suffix = "User Query:" + suffix.format(question=question)
-
-        messages = prepare_openai_vision_messages(
-            prefix=prefix, suffix=suffix, image_paths=image_paths, image_size=image_size
-        )
-        assert len(messages) == 1
-
-        output = call_openai_assitant_api(
-            messages=messages,
-            attachment_paths=attachment_paths,
-            model=openai_model,
-            seed=openai_seed,
-            max_tokens=openai_max_tokens,
-            temperature=openai_temperature,
-        )
-        
-        return output
-    
-    except Exception as e:
-        if not force:
-            traceback.print_exc()
-            raise e
-
 def ask_question( #* called when there is no scenegraph for the episode of question
     question: str,
     image_paths: List,
@@ -184,7 +144,9 @@ def main(args: argparse.Namespace):
         results = json.load(args.output_path.open())
         print("found {:,} existing results".format(len(results)))
     completed = [item["question_id"] for item in results]
-
+    
+    scenegraph_manager = ScenegraphManager()
+    
     # process data
     for idx, item in enumerate(tqdm.tqdm(dataset)): #* 각 question에 대해 반복
         if args.dry_run and idx >= 2:
@@ -205,7 +167,6 @@ def main(args: argparse.Namespace):
 
         # TODO: check whether all frames are seen - after merge other branch
         #* check for existence of the episode's scenegraph
-        scenegraph_manager = ScenegraphManager()
         is_there = scenegraph_manager.has_episode(episode_id)
 
         # generate answer
@@ -213,10 +174,9 @@ def main(args: argparse.Namespace):
 
         if is_there: #* if there is a scenegraph for the episode
             print("Scenegraph for episode: {}".format(episode_id))
-            output = ask_question_with_attachment(
+            output = ask_question(
                 question=question,
                 image_paths=paths,
-                attachment_paths=[scenegraph_manager.get_scenegraph_path(episode_id)],
                 image_size=args.image_size,
                 openai_model=args.model,
                 openai_seed=args.seed,
@@ -240,8 +200,9 @@ def main(args: argparse.Namespace):
         #* save updated_scenegraph
         print("output: {}".format(output))
         # TODO: string to dict - after engineering prompt
+        SCENEGRAPH_SEPARATOR = "User Query:"
         # output = json.loads(output)
-        prefix, suffix = output.split("json\n")
+        prefix, suffix = output.split(SCENEGRAPH_SEPARATOR)
         print("suffix: ", suffix)
         # scenegraph_manager.update_scenegraph(episode_id, json.loads(suffix))
         # answer = output["answer"]

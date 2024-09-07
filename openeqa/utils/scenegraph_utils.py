@@ -45,7 +45,7 @@ class ScenegraphManager():
 
 '''scenegraph_per_episode 의 구성
 {
-  "episode 1" : {유정이가 만드는 scenegraph},
+  "episode 1" : {returned scenegraph from prompt},
   "episode 2" : {"},
   "episode 3" : {"},
   ...
