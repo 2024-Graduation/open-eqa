@@ -12,13 +12,12 @@ class IndicesExtractor():
         base_prob_ratio (float): the ratio of the probability for random selection for all indices
         residual_prob_ratio (float): the ration of the probability for random selection for indices with the minimum count
     """
-    def __init__(self, base_prob_ratio = 0.1):
+    def __init__(self, base_prob_ratio = BASE_PROB_RATIO):
         super(IndicesExtractor, self).__init__()
         np.random.seed(1234) # seed for reproducibility
         
         self.indices_counter = {}
-        self.base_prob_ratio = base_prob_ratio
-        self.residual_prob_ratio = 1.0 - base_prob_ratio
+        self.__set_prob_ratio(base_prob_ratio)
     
     def add_episode(self, episode_id: str, episode_len: int):
         """
@@ -50,7 +49,7 @@ class IndicesExtractor():
             raise ValueError("Episode not found")
         
         episode_len = len(self.indices_counter[episode_id])
-        pool_sizes = self.calculate_pool_size(episode_len, num_frames)
+        pool_sizes = self.__calculate_pool_size(episode_len, num_frames)
         extracted_indices = np.zeros(num_frames, dtype=np.int32) # initialize extracted indices
         
         start_idx = 0
@@ -58,7 +57,7 @@ class IndicesExtractor():
             end_idx = start_idx + pool_sizes[i]
             pooled_indices = np.arange(start_idx, end_idx)
             
-            probabilities = self.calculate_probabilities(episode_id, pooled_indices)
+            probabilities = self.__calculate_probabilities(episode_id, pooled_indices)
             extracted_index = np.random.choice(pooled_indices, p=probabilities) # select an index based on probabilities
             
             extracted_indices[i] = extracted_index # store the extracted index
@@ -72,7 +71,7 @@ class IndicesExtractor():
 
         return extracted_indices, indices_status
     
-    def calculate_pool_size(self, episode_len: int, num_frames: int):
+    def __calculate_pool_size(self, episode_len: int, num_frames: int):
         """
         Calculate the pool sizes for each frame extraction
         
@@ -93,7 +92,7 @@ class IndicesExtractor():
         
         return pool_sizes
     
-    def calculate_probabilities(self, episode_id: str, pooled_indices: np.ndarray):
+    def __calculate_probabilities(self, episode_id: str, pooled_indices: np.ndarray):
         """
         Calculate the probabilities for each available pooled index
         
@@ -114,7 +113,7 @@ class IndicesExtractor():
         
         return base_probabilities + residual_probabilities
     
-    def set_prob_ratio(self, base_prob_ratio: float):
+    def __set_prob_ratio(self, base_prob_ratio: float):
         """
         Set the probabilities for random selection
         
