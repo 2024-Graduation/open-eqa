@@ -19,5 +19,7 @@ data/*
 assets/demo_frames/*
 openeqa/models/*
 
-*typ
-*pdf
+*.typ
+*.pdf
+
+data/scenegraphs/*

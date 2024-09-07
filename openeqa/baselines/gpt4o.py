@@ -12,15 +12,16 @@ from typing import List, Optional
 import numpy as np
 import tqdm
 
+from openeqa.utils.extract_indices import IndicesExtractor
 from openeqa.utils.openai_utils import (
     call_openai_api,
-    call_openai_assitant_api,
     prepare_openai_vision_messages,
     set_openai_key,
 )
 from openeqa.utils.prompt_utils import load_prompt
 from openeqa.utils.scenegraph_utils import ScenegraphManager
 
+DEFAULT_MAX_TOKENS = 4096 #* maximum tokens for gpt4o
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -69,8 +70,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-tokens",
         type=int,
-        default=128,
-        help="gpt maximum tokens (default: 128)",
+        default=DEFAULT_MAX_TOKENS,
+        help="gpt maximum tokens (default: DEFAULT_MAX_TOKENS)",
     )
     parser.add_argument(
         "--output-directory",
@@ -109,7 +110,7 @@ def ask_question( #* called when there is no scenegraph for the episode of quest
     try:
         set_openai_key(key=openai_key)
 
-        prompt = load_prompt("gpt4o-base-sg") # TODO: load the prompt for creating scenegraph
+        prompt = load_prompt("gpt4o-update")
         prefix, suffix = prompt.split("User Query:")
         suffix = "User Query:" + suffix.format(question=question)
 
@@ -129,14 +130,61 @@ def ask_question( #* called when there is no scenegraph for the episode of quest
             traceback.print_exc()
             raise e
 
+def extract_frames(
+    episode_id: str,
+    num_frames: int,
+    frames_directory: Path,
+    extractor: IndicesExtractor,
+) -> List[str]:
+    folder = frames_directory / episode_id
+    frames = sorted(folder.glob("*-rgb.png"))
+    extractor.add_episode(episode_id, len(frames))
+    extract_indices, indices_status = extractor.extract_indices(episode_id, num_frames)
+
+    paths = [str(frames[i]) for i in extract_indices]
+    return paths
+
+def create_base_scenegraph(
+    episode_id: str,
+    image_paths: List[str],
+    scenegraph_manager: ScenegraphManager,
+    image_size: int = 512,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+    force: bool = False,
+) -> Optional[str]:
+    try:
+        set_openai_key(key=None)
+    
+        prompt = load_prompt("gpt4o-base")
+        print("Creating base scenegraph for episode: {}".format(episode_id))
+        messages = prepare_openai_vision_messages(
+            prefix=prompt, image_paths=image_paths, image_size=image_size
+        )
+        output = call_openai_api(
+            messages=messages,
+            model="gpt-4o",
+            seed=1234,
+            max_tokens=max_tokens,
+            temperature=0.2,
+        )
+        scenegraph = output.split("Scenegraph:")
+        scenegraph = json.loads(scenegraph[1])
+        scenegraph_manager.create_scenegraph(episode_id, scenegraph)
+
+        return scenegraph
+
+    except Exception as e:
+        if not force:
+            traceback.print_exc()
+            raise e
 
 def main(args: argparse.Namespace):
     # check for openai api key
     assert "OPENAI_API_KEY" in os.environ
 
-    # load dataset
-    dataset = json.load(args.dataset.open("r"))
-    print("found {:,} questions".format(len(dataset)))
+    # load questions dataset
+    questions = json.load(args.dataset.open("r"))
+    print("found {:,} questions".format(len(questions)))
 
     # load results
     results = []
@@ -146,10 +194,11 @@ def main(args: argparse.Namespace):
     completed = [item["question_id"] for item in results]
     
     scenegraph_manager = ScenegraphManager()
+    extractor = IndicesExtractor()
     
     # process data
-    for idx, item in enumerate(tqdm.tqdm(dataset)): #* 각 question에 대해 반복
-        if args.dry_run and idx >= 2:
+    for idx, item in enumerate(tqdm.tqdm(questions)): #* 각 question에 대해 반복
+        if args.dry_run and idx >= 3:
             break
 
         # skip completed questions
@@ -158,60 +207,44 @@ def main(args: argparse.Namespace):
             continue  # skip existing
 
         #* extract scene paths
-        # TODO: call function to get indices - after merge other branch
-        episode_id = item["episode_history"]
-        folder = args.frames_directory / episode_id
-        frames = sorted(folder.glob("*-rgb.png"))
-        indices = np.round(np.linspace(0, len(frames) - 1, args.num_frames)).astype(int)
-        paths = [str(frames[i]) for i in indices]
+        episode_id = item["episode_history"] # mini-hm3d-v0/episode_name
+        paths = extract_frames(episode_id, args.num_frames, args.frames_directory, extractor)
 
-        # TODO: check whether all frames are seen - after merge other branch
-
+        #* check for existence of the episode's scenegraph and create if not found
+        if scenegraph_manager.has_episode(episode_id) == False:
+            print("No scenegraph for episode: {}".format(episode_id))
+            create_base_scenegraph(episode_id=episode_id,
+                                      image_paths=paths,
+                                      scenegraph_manager=scenegraph_manager,
+                                      max_tokens=args.max_tokens,
+                                      image_size=args.image_size,
+                                      force=args.force)
         
-        #* check for existence of the episode's scenegraph
-        is_there = scenegraph_manager.has_episode(episode_id)
+        print("scenegraph exists for episode: {}".format(episode_id))
 
         # generate answer
         question = item["question"]
-
-        if is_there: #* if there is a scenegraph for the episode
-            print("Scenegraph for episode: {}".format(episode_id))
-            output = ask_question(
-                question=question,
-                image_paths=paths,
-                image_size=args.image_size,
-                openai_model=args.model,
-                openai_seed=args.seed,
-                openai_max_tokens=args.max_tokens,
-                openai_temperature=args.temperature,
-                force=args.force,
-            )
-        else: #* if there is no scenegraph for the episode
-            print("No scenegraph for episode: {}".format(episode_id))
-            output = ask_question(
-                question=question,
-                image_paths=paths,
-                image_size=args.image_size,
-                openai_model=args.model,
-                openai_seed=args.seed,
-                openai_max_tokens=args.max_tokens,
-                openai_temperature=args.temperature,
-                force=args.force,
-            )
+        output = ask_question( #* answer with updating scenegraph
+            question=question,
+            image_paths=paths,
+            image_size=args.image_size,
+            openai_model=args.model,
+            openai_seed=args.seed,
+            openai_max_tokens=args.max_tokens,
+            openai_temperature=args.temperature,
+            force=args.force,
+        )
         
-        #* save updated_scenegraph
         print("output: {}".format(output))
-        # TODO: string to dict - after engineering prompt
-        SCENEGRAPH_SEPARATOR = "Scenegraph: "
-        prefix, output_json = output.split(SCENEGRAPH_SEPARATOR)
-        output_json = json.loads(output_json)
-        print("output_json: ", output_json)
+        print("--------------------")
 
-        scenegraph = output_json["scenegraph"]
-        scenegraph_manager.update_scenegraph(episode_id, json.loads(scenegraph))
-        
-        #* extract answer
-        answer = output_json["answer"]
+        ##* save updated_scenegraph
+        SCENEGRAPH_SEPARATOR = "Scenegraph: "
+        output_parsed_json = json.loads(output.split(SCENEGRAPH_SEPARATOR)[1])
+        scenegraph = output_parsed_json["scenegraph"]
+        scenegraph_manager.update_scenegraph(episode_id, scenegraph)
+
+        answer = output_parsed_json["answer"]
     
         # store results
         results.append({"question_id": question_id, "answer": answer})
