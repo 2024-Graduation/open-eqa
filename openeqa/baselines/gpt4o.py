@@ -127,6 +127,7 @@ def ask_question(
         messages = prepare_openai_vision_messages(
             prefix=prefix, suffix=suffix, image_paths=image_paths, image_size=image_size
         )
+        # print("messages suffix: \n{suffix}".format(suffix=suffix))
         output = call_openai_api(
             messages=messages,
             model=openai_model,
@@ -177,8 +178,7 @@ def create_base_scenegraph(
             max_tokens=max_tokens,
             temperature=0.2,
         )
-        scenegraph = output.split("Scenegraph:")
-        scenegraph = json.loads(scenegraph[1])
+        scenegraph = json.loads(output.split("Scenegraph:")[1])
         scenegraph_manager.create_scenegraph(episode_id, scenegraph)
 
         return scenegraph
@@ -227,6 +227,8 @@ def main(args: argparse.Namespace):
         # skip completed questions
         question_id = item["question_id"]
         if question_id in completed:
+            if args.test_base_prompt: # pop the question_id from completed
+                results = [item for item in results if item["question_id"] != question_id]
             continue  # skip existing
 
         print("\n\n========================== Processing question: {} ==========================\n".format(item["question"]))

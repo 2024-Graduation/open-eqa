@@ -34,8 +34,7 @@ class ScenegraphManager():
     def get_scenegraph(self, episode_id) -> json: # get scenegraph of episode
         if not self.has_episode(episode_id):
             raise Exception(f"Getting scenegraph failed: Episode {episode_id} does not exist.")
-        episode_name = self.__get_episode_name(episode_id)
-        return self.scenegraphs_per_episode[episode_name]
+        return self.scenegraphs_per_episode[self.__get_episode_name(episode_id)]
 
     def __add_episode(self, episode_id) -> None: # add new episode
         episode_name = self.__get_episode_name(episode_id)
@@ -47,10 +46,11 @@ class ScenegraphManager():
     
     def create_scenegraph(self, episode_id, scenegraph) -> None:
         self.__add_episode(episode_id)
-        self.scenegraphs_per_episode[episode_id] = scenegraph
+        self.scenegraphs_per_episode[self.__get_episode_name(episode_id)] = scenegraph
 
         with open(self.get_scenegraph_path(episode_id), 'w') as file:
             json.dump(scenegraph, file)
+        print("created scenegraph: {}".format(scenegraph))
 
     def update_scenegraph(self, episode_id: str, new_scenegraph: json) -> None: # update scenegraph of episode and save to file
         print("Updating scenegraph for episode: ", episode_id)
@@ -77,9 +77,13 @@ class ScenegraphManager():
 
 '''scenegraph_per_episode 의 구성
 {
-  "episode 1" : {returned scenegraph from prompt},
-  "episode 2" : {"},
-  "episode 3" : {"},
+  "episode_name" :
+    {
+			"scenegraph" : {for each room},
+      "answer" : ...
+    },
+  "episode_name" : {"},
+  "episode_name" : {"},
   ...
 }
 '''
