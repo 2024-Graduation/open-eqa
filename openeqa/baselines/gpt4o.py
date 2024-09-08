@@ -23,6 +23,8 @@ from openeqa.utils.prompt_utils import load_prompt
 from openeqa.utils.scenegraph_utils import ScenegraphManager
 
 DEFAULT_MAX_TOKENS = 4096 #* maximum tokens for gpt4o
+INPUT_SCENEGRAPH_SEPARATOR = "Output: " #* input scenegraph separator
+OUTPUT_SCENEGRAPH_SEPARATOR = "Output: "
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -90,7 +92,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="only process the first 5 questions",
     )
-    parser.add_argument(
+    parser.add_argument( #* test base prompt
         "--test-base-prompt",
         action="store_true",
         help="test prompt performance",
@@ -102,9 +104,10 @@ def parse_args() -> argparse.Namespace:
     )
     return args
 
-def ask_question( #* called when there is no scenegraph for the episode of question
+def ask_question(
     question: str,
     image_paths: List,
+    previous_scenegraph: json,
     image_size: int = 512,
     openai_key: Optional[str] = None,
     openai_model: str = "gpt-4o",
@@ -117,8 +120,9 @@ def ask_question( #* called when there is no scenegraph for the episode of quest
         set_openai_key(key=openai_key)
 
         prompt = load_prompt("gpt4o-update")
-        prefix, suffix = prompt.split("User Query:")
-        suffix = "User Query:" + suffix.format(question=question)
+        prefix, suffix = prompt.rsplit(INPUT_SCENEGRAPH_SEPARATOR, 1)
+        suffix_scenegraph, suffix_query = suffix.split("User Query:")
+        suffix = "Scenegraph: " + suffix_scenegraph.format(scenegraph=json.dumps(previous_scenegraph)) + "\nUser Query: " + suffix_query.format(question=question)
 
         messages = prepare_openai_vision_messages(
             prefix=prefix, suffix=suffix, image_paths=image_paths, image_size=image_size
@@ -225,6 +229,8 @@ def main(args: argparse.Namespace):
         if question_id in completed:
             continue  # skip existing
 
+        print("\n\n========================== Processing question: {} ==========================\n".format(item["question"]))
+
         #* extract scene paths
         episode_id = item["episode_history"] # mini-hm3d-v0/episode_name
         paths = extract_frames(episode_id, args.num_frames, args.frames_directory, extractor)
@@ -252,13 +258,14 @@ def main(args: argparse.Namespace):
                                       image_size=args.image_size,
                                       force=args.force)
         
-        print("scenegraph exists for episode: {}".format(episode_id))
+        print("\nscenegraph exists for episode: {}".format(episode_id))
 
         # generate answer
         question = item["question"]
         output = ask_question( #* answer with updating scenegraph
             question=question,
             image_paths=paths,
+            previous_scenegraph=scenegraph_manager.get_scenegraph(episode_id),
             image_size=args.image_size,
             openai_model=args.model,
             openai_seed=args.seed,
@@ -269,9 +276,11 @@ def main(args: argparse.Namespace):
         
         print("output: {}".format(output))
 
-        ##* save updated_scenegraph
-        SCENEGRAPH_SEPARATOR = "Scenegraph: "
-        output_parsed_json = json.loads(output.split(SCENEGRAPH_SEPARATOR)[1])
+        #* save updated_scenegraph
+        if output.__contains__("text: "):
+            print("has text - output: {}".format(output))
+            output_parsed_json = json.loads(output.split("text: ")[0])
+        output_parsed_json = json.loads(output.split(OUTPUT_SCENEGRAPH_SEPARATOR)[1])
         scenegraph = output_parsed_json["scenegraph"]
         scenegraph_manager.update_scenegraph(episode_id, scenegraph)
 

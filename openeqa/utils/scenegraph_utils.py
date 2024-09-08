@@ -30,6 +30,12 @@ class ScenegraphManager():
         
     def get_scenegraph_path(self, episode_id) -> Path: # get path of scenegraph of episode
         return Path(f'{base_path}{episode_id}.json')
+    
+    def get_scenegraph(self, episode_id) -> json: # get scenegraph of episode
+        if not self.has_episode(episode_id):
+            raise Exception(f"Getting scenegraph failed: Episode {episode_id} does not exist.")
+        episode_name = self.__get_episode_name(episode_id)
+        return self.scenegraphs_per_episode[episode_name]
 
     def __add_episode(self, episode_id) -> None: # add new episode
         episode_name = self.__get_episode_name(episode_id)
@@ -56,7 +62,7 @@ class ScenegraphManager():
 
         with open(self.get_scenegraph_path(episode_id), 'w') as file:
             json.dump(new_scenegraph, file)
-            print("Scenegraph saved to file: ", self.get_scenegraph_path(episode_id))
+            print("Scenegraph saved to file: {}\n".format(self.get_scenegraph_path(episode_id)))
     
     def delete_episode_file(self, episode_id) -> None:
         if not self.has_episode(episode_id):

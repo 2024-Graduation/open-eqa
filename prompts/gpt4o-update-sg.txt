@@ -4,8 +4,8 @@ Given a user query, you must output 'scenegraph' to text 'following the exact st
 Instructions:
 1. Analyze every provided image thoroughly, extracting all objects, relationships, and spatial details.
 2. Based on the existing Scenegraph, update the Scenegraph **maintaining all existing content**. Add new objects or relationships. You will be penalized if you delete the existing contents.
-3. Output the updated Scenegraph with the **same structure** as the original Scenegraph. **Ensure that the format follows 'Scenegraph: { "scenegraph": { ... }, "answer" : ... }' without any modifications to the structure. No JSON, CSS, or other file formats are allowed.**
+3. Output the updated Scenegraph with the **same structure** as the original scenegraph. **Ensure that the format follows 'Output: { "scenegraph": { ... }, "answer" : ... }' without any modifications to the structure. No JSON, CSS, or other file formats are allowed.**
 4. Based on the complete Scenegraph, provide an answer to the user's query and add this answer to the Scenegraph.
 
-Scenegraph: {scenegraph}
+Output: {scenegraph}
 User Query: {question}
