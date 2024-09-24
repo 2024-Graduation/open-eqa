@@ -18,6 +18,7 @@ from openeqa.utils.openai_utils import (
     set_openai_key,
 )
 from openeqa.utils.prompt_utils import load_prompt
+from openeqa.utils.videoagent import first_step, second_step
 
 
 def parse_args() -> argparse.Namespace:
@@ -145,6 +146,7 @@ def main(args: argparse.Namespace):
     completed = [item["question_id"] for item in results]
 
     # process data
+    #* question 기준으로 iterate
     for idx, item in enumerate(tqdm.tqdm(dataset)):
         if args.dry_run and idx >= 5:
             break
@@ -162,7 +164,8 @@ def main(args: argparse.Namespace):
 
         # generate answer
         question = item["question"]
-        answer = ask_question(
+        trial = 1
+        '''answer = ask_question(
             question=question,
             image_paths=paths,
             image_size=args.image_size,
@@ -171,7 +174,19 @@ def main(args: argparse.Namespace):
             openai_max_tokens=args.max_tokens,
             openai_temperature=args.temperature,
             force=args.force,
-        )
+        )'''
+        while (trial < 2):
+            answer, confidence = first_step( #* images 들에 대해 captions 추출, answer 및 confidence 도출
+                question=question,
+                image_paths=paths,
+            )
+            if confidence < 3:
+                trial+=1
+                answer, confidence = second_step(
+                    question=question,
+                    episode_id='test',
+                    num_frames=5, # select multiple best frames
+                )
 
         # store results
         results.append({"question_id": question_id, "answer": answer})
