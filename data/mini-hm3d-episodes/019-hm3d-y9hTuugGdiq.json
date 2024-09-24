@@ -1,0 +1,112 @@
+[
+  {
+    "question": "What is above the light switch?",
+    "answer": "A circuit breaker box",
+    "category": "object recognition",
+    "question_id": "5d538466-397e-4b3b-8d40-d32bc80d5c0b",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq"
+  },
+  {
+    "question": "What white object can be partially seen in the room across the bedroom? ",
+    "answer": "A laundry machine",
+    "category": "object recognition",
+    "question_id": "0cbe9fd8-0b2c-40ce-9e9e-bd883fb7bff5",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq"
+  },
+  {
+    "question": "What color are the patio chairs?",
+    "answer": "Brown",
+    "category": "attribute recognition",
+    "question_id": "55f022a0-2bd2-410b-9323-e077908a55d2",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq"
+  },
+  {
+    "question": "What color is the bed frame?",
+    "answer": "White",
+    "category": "attribute recognition",
+    "question_id": "e87b90d9-77d5-4f99-b44a-ad1d11480334",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq"
+  },
+  {
+    "question": "What is across the dishwasher?",
+    "answer": "A fridge",
+    "category": "spatial understanding",
+    "question_id": "b60453d8-d274-4159-b368-96e8ad66575f",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq"
+  },
+  {
+    "question": "What appliance is below the hanging cabinets on the left side of the kitchen?",
+    "answer": "A toaster oven",
+    "category": "spatial understanding",
+    "question_id": "4af07938-5cb6-4784-922d-893dc57ca225",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq"
+  },
+  {
+    "question": "Are the drapes in the bedroom open or closed?",
+    "answer": "Open",
+    "category": "object state recognition",
+    "question_id": "bb1f77da-2f24-45e4-af20-10d82c300c06",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq"
+  },
+  {
+    "question": "Are the blinds in the living room all open or all closed?",
+    "answer": "Neither, some are open some are closed",
+    "category": "object state recognition",
+    "question_id": "0785d52a-eb84-4159-9aff-54b20f79fa5f",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq"
+  },
+  {
+    "question": "Where would the garbage disposal switch be located?",
+    "answer": "The switches to the right of the sink",
+    "category": "functional reasoning",
+    "question_id": "da1d2adf-7888-4c94-80d7-b84f09a25682",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq"
+  },
+  {
+    "question": "If the lights suddenly go out, where should I go to fix it?",
+    "answer": "The circuit breaker box to the left of the laundry room",
+    "category": "functional reasoning",
+    "question_id": "e5c3d2bd-ef67-46a5-badc-f6c9f1421be2",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq"
+  },
+  {
+    "question": "What kind of staircase does this home have?",
+    "answer": "A spiral staircase",
+    "category": "world knowledge",
+    "question_id": "9d9d4db5-7028-48a6-a62b-e62ec13d0393",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq"
+  },
+  {
+    "question": "Where can I get a drink of water?",
+    "answer": "From the water dispenser in the fridge",
+    "category": "world knowledge",
+    "question_id": "13d097e7-12c7-48e0-92c4-9667fc7f9c60",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq"
+  },
+  {
+    "question": "Where are the paper towels?",
+    "answer": "Above the dishwasher",
+    "category": "object localization",
+    "question_id": "b38045c3-cf3d-43e3-8fee-a085b89a4d3a",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq",
+    "extra_answers": [
+      "On the kitchen, at the right of the sink",
+      "On the kitchen above the dishwasher",
+      "near the kitchen breakfast bar",
+      "next to the toaster"
+    ]
+  },
+  {
+    "question": "Where is the umbrella?",
+    "answer": "On the balcony outside",
+    "category": "object localization",
+    "question_id": "5a8b3936-43e0-4474-ac15-efaf488265a1",
+    "episode_history": "mini-hm3d-v0/019-hm3d-y9hTuugGdiq",
+    "extra_answers": [
+      "Outside the house, on the balcony",
+      "On the porche",
+      "on the back deck",
+      "outside over the table"
+    ]
+  }
+]

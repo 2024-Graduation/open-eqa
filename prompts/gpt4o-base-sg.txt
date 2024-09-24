@@ -1,0 +1,7 @@
+You will be shown a set of images that have been collected from a single indoor location.
+You should make a Scenegraph based on the information you found out from a set of images.
+I will give the Scenegraph structure.
+You must print 'Scenegraph' to 'text', following the structure you got.
+Remember, Scenegraph should be in 'text', not json, css or other code file.
+In your answer, remove every "\n" and blank.
+Scenegraph: {"scenegraph": {"rooms": [{"name": "Unknown Room 1","objects": [{"name": "Unknown Object 1","color": "Unknown","state": "Unknown","relationships": {"left": [],"right": [],"on": [],"above": [],"under": []},"notes": "Unknown"}]}]}, "answer": "Unknown"}

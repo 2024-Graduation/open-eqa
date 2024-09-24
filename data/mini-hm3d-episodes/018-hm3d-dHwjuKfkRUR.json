@@ -1,0 +1,91 @@
+[
+{
+    "question": "What objects are in the black cubby shelf?",
+    "answer": "Books",
+    "category": "object recognition",
+    "question_id": "3825d20a-c58a-458a-971c-f1714dfccd9d",
+    "episode_history": "mini-hm3d-v0/018-hm3d-dHwjuKfkRUR"
+  },
+  {
+    "question": "What color is the chair in the bedroom?",
+    "answer": "Black",
+    "category": "attribute recognition",
+    "question_id": "8067bfd8-c034-45a6-8fe1-44a829fec95e",
+    "episode_history": "mini-hm3d-v0/018-hm3d-dHwjuKfkRUR"
+  },
+  {
+    "question": "What is in between the two bedroom doorways?",
+    "answer": "A light switch",
+    "category": "spatial understanding",
+    "question_id": "92fc2743-e2d7-4504-bb94-4b95c4f9596d",
+    "episode_history": "mini-hm3d-v0/018-hm3d-dHwjuKfkRUR"
+  },
+  {
+    "question": "What can be seen outside the bedroom window?",
+    "answer": "A pond",
+    "category": "spatial understanding",
+    "question_id": "7e363878-ad19-4493-8a6f-0350bff27557",
+    "episode_history": "mini-hm3d-v0/018-hm3d-dHwjuKfkRUR"
+  },
+  {
+    "question": "Is the sliding door open or closed?",
+    "answer": "Closed",
+    "category": "object state recognition",
+    "question_id": "633ca326-2027-4316-8c20-ef4debde39d2",
+    "episode_history": "mini-hm3d-v0/018-hm3d-dHwjuKfkRUR"
+  },
+  {
+    "question": "Is the chandelier turned on?",
+    "answer": "Yes.",
+    "category": "object state recognition",
+    "question_id": "a441274f-6be5-4ed0-ab6a-fea064b5c008",
+    "episode_history": "mini-hm3d-v0/018-hm3d-dHwjuKfkRUR"
+  },
+  {
+    "question": "Where can I store books if the shelf gets full?",
+    "answer": "The woven baskets underneath",
+    "category": "functional reasoning",
+    "question_id": "684217f2-75c1-4c1c-ae06-9aa090e5d0c2",
+    "episode_history": "mini-hm3d-v0/018-hm3d-dHwjuKfkRUR"
+  },
+  {
+    "question": "Are the walls painted?",
+    "answer": "No",
+    "category": "world knowledge",
+    "question_id": "7131770c-d338-4dfa-b778-0dd5a00a4ef1",
+    "episode_history": "mini-hm3d-v0/018-hm3d-dHwjuKfkRUR"
+  },
+  {
+    "question": "Is the bedroom furnished and ready to live in?",
+    "answer": "No.",
+    "category": "world knowledge",
+    "question_id": "e22162c7-9c4d-46f0-8dd5-560a9c4f0dad",
+    "episode_history": "mini-hm3d-v0/018-hm3d-dHwjuKfkRUR"
+  },
+  {
+    "question": "Where is the picture with the red flowers?",
+    "answer": "Next to the stairway",
+    "category": "object localization",
+    "question_id": "4868b6d7-d999-4264-9c19-8fd7a4db93cd",
+    "episode_history": "mini-hm3d-v0/018-hm3d-dHwjuKfkRUR",
+    "extra_answers": [
+      "On the wall to the right of the staircase.",
+      "On the wall in the hallway.",
+      "On the hallway, near the stairs",
+      "On the wall, close to the stairs"
+    ]
+  },
+  {
+    "question": "Where are the brown woven baskets?",
+    "answer": "Below the books in the black cubby shelf",
+    "category": "object localization",
+    "question_id": "34ddc942-4b8b-419c-be6b-8c53b1c83dc3",
+    "episode_history": "mini-hm3d-v0/018-hm3d-dHwjuKfkRUR",
+    "extra_answers": [
+      "On the first shelves of the bookcase.",
+      "In the bookcase just outside the first room.",
+      "On the lower part of the shelf outside of the bedroom",
+      "On the shelf outside the bedroom and in front of the stairs"
+    ]
+  }
+]

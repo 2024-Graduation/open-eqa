@@ -33,7 +33,7 @@ class IndicesExtractor():
         if episode_id not in self.indices_counter:
             self.indices_counter[episode_id] = np.zeros(episode_len, dtype=np.int8)
 
-    def extract_indices(self, episode_id: str, num_frames: int):
+    def extract_indices(self, episode_id: str, num_frames: int) -> tuple[np.ndarray, dict]:
         """
         Extract indices for a given episode
         
