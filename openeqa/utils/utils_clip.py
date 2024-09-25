@@ -3,7 +3,7 @@ from typing import List
 
 import numpy as np
 
-cache_clip = pickle.load(open("cache_clip.pkl", "rb"))
+cache_clip = pickle.load(open("cache_clip.pkl", "rb")) # byte 형태로 읽는다.
 
 
 def get_embeddings(inputs: List[str]) -> np.ndarray:

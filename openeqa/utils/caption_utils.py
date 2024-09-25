@@ -9,7 +9,33 @@ import openai
 from openeqa.utils.prompt_utils import *
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from openai_utils import *
+from openeqa.utils.openai_utils import *
+
+class Captions():
+    captions_data = {}
+    
+    def add_caption(self, episode_id: str,
+            image_path: int,
+            caption: str,
+            update: bool = False
+        ) -> None:
+
+        caption = {
+            "image_idx" : image_path,
+            "caption" : caption,
+            "update" : 0 if update==False else 1
+        }
+
+        if episode_id not in self.captions_data.keys():
+            self.captions_data[episode_id] = []
+        
+        captions_for_episode = self.captions_data[episode_id] # list
+        captions_for_episode.append(caption)
+
+        self.captions_data[episode_id] = captions_for_episode
+
+        print("add_caption: ", caption)
+        print("episode_captions " , self.captions_data[episode_id])
 
 def create_captions(
     image_paths: List,
@@ -22,7 +48,7 @@ def create_captions(
     force: bool = False
 ) -> Optional[str]:
 
-    openai_key = os.environ("OPENAI_API_KEY")
+    openai_key = os.environ["OPENAI_API_KEY"]
 
     try:
         set_openai_key(key=openai_key)
@@ -41,7 +67,10 @@ def create_captions(
             max_tokens=openai_max_tokens,
             temperature=openai_temperature,
         )
+
+        print("caption output: ", output)
         return output
+    
     except Exception as e:
         if not force:
             traceback.print_exc()

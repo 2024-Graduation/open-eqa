@@ -7,8 +7,8 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from openai import OpenAI
 
-from utils_clip import frame_retrieval_seg_ego
-from utils_general import get_from_cache, save_to_cache
+from openeqa.utils.caption_utils import create_captions
+# from openeqa.utils.utils_clip import frame_retrieval_seg_ego
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -82,34 +82,34 @@ def get_llm_response(
     ]
     key = json.dumps([model, messages])
     logger.info(messages)
-    cached_value = get_from_cache(key)
-    if cached_value is not None:
-        logger.info("Cache Hit")
-        logger.info(cached_value)
-        return cached_value
+    # cached_value = get_from_cache(key)
+    # if cached_value is not None:
+    #     logger.info("Cache Hit")
+    #     logger.info(cached_value)
+    #     return cached_value
 
-    print("Not hit cache", key)
-    input()
+    print("Not hit cache\n", key)
+    # input()
 
-    for _ in range(3):
-        try:
-            if json_format:
-                completion = client.chat.completions.create(
-                    model=model,
-                    response_format={"type": "json_object"},
-                    messages=messages,
-                )
-            else:
-                completion = client.chat.completions.create(
-                    model=model, messages=messages
-                )
-            response = completion.choices[0].message.content
-            logger.info(response)
-            save_to_cache(key, response)
-            return response
-        except Exception as e:
-            logger.error(f"GPT Error: {e}")
-            continue
+    # for _ in range(3):
+    try:
+        if json_format:
+            completion = client.chat.completions.create(
+                model=model,
+                response_format={"type": "json_object"},
+                messages=messages,
+            )
+        else:
+            completion = client.chat.completions.create(
+                model=model, messages=messages
+            )
+        response = completion.choices[0].message.content
+        # logger.info(response)
+        # save_to_cache(key, response)
+        return response
+    except Exception as e:
+        logger.error(f"GPT Error: {e}")
+        # continue
     return "GPT Error"
 
 
@@ -186,6 +186,7 @@ def self_eval(previous_prompt, answer):
     return response
 
 
+# frame, caption 주고 question 에 대해 answer 도출
 def ask_gpt_caption(question, caption, num_frames):
     answer_format = {"final_answer": "xxx"}
     prompt = f"""
@@ -201,6 +202,7 @@ def ask_gpt_caption(question, caption, num_frames):
     """
     system_prompt = "You are a helpful assistant."
     response = get_llm_response(system_prompt, prompt, json_format=False)
+    print("ask gpt caption is done")
     return prompt, response
 
 
@@ -332,39 +334,43 @@ def run_one_question(video_id, ann, caps, logs):
         "count_frame": count_frame,
     }
 
-
-
 ###
 def formatting_question(question):
     formatted_question = (
         f"Here is the question: {question}\n"
-        + "Here are the choices: "
-        + " ".join([f"{i}. {ans}" for i, ans in enumerate(answers)])
     )
     return formatted_question
 
-def first_step(question, image_paths):
-    num_frames = len(image_paths)
-    sample_idx = np.linspace(1, num_frames, num=5, dtype=int).tolist()
-    caps = create_captions(image_paths) #* image captioning function - call gpt
-    sampled_caps = read_caption(caps, sample_idx)
-
+def first_step(question, captions_data):
+    # num_frames = len(image_paths)
+    # sample_idx = np.linspace(1, num_frames, num=5, dtype=int).tolist()
+    # caps = create_captions(image_paths) #* image captioning function - call gpt
+    # sampled_caps = read_caption(caps, sample_idx)
+    ## captions_data = list of json
+    caption_txt = []
+    for caption in captions_data:
+        caption_txt.append(caption['caption'])
+    num_frames = len(captions_data)
+    
     formatted_question = formatting_question(question)
     previous_prompt, answer_str = ask_gpt_caption(
-        formatted_question, sampled_caps, num_frames
+        formatted_question, caption_txt, num_frames
     )
+    
     answer = parse_text_find_number(answer_str)
     confidence_str = self_eval(previous_prompt, answer_str)
     confidence = parse_text_find_confidence(confidence_str)
 
+    print(f"[Step 1] answer: {answer}, confidence: {confidence}")
 
+    return answer, confidence
 
 #* step 2.
 #* 1. get best segment
 #* 2. get best frame most relevant with the question
 #* 3. create captions for each frame
 #* 4. get answer from the captions
-def second_step(question, episode_id, num_frames):
+def second_step(question, episode_id, num_frames, saved_captions):
     try:
         segment_des = {
             i + 1: f"{sample_idx[i]}-{sample_idx[i + 1]}"
@@ -380,20 +386,25 @@ def second_step(question, episode_id, num_frames):
             segment_des,
         )
         parsed_cand_captions = parse_json(cand_captions)
-        frame_idx = frame_retrieval_seg_ego(
-            parsed_cand_captions["frame_descriptions"], episode_id, sample_idx
-        )
+        # frame_idx = frame_retrieval_seg_ego(
+        #     parsed_cand_captions["frame_descriptions"], episode_id, sample_idx
+        # )
+        #!
+        frame_idx = 0
         logger.info(f"Step 2: {frame_idx}")
         sample_idx += frame_idx
         sample_idx = sorted(list(set(sample_idx)))
 
-        sampled_caps = read_caption(caps, sample_idx)
+        sampled_caps = read_caption(cand_captions, sample_idx)
         previous_prompt, answer_str = ask_gpt_caption_step(
             formatted_question, sampled_caps, num_frames
         )
         answer = parse_text_find_number(answer_str)
         confidence_str = self_eval(previous_prompt, answer_str)
         confidence = parse_text_find_confidence(confidence_str)
+
+
+        print(f"[Step 2] answer: {answer}, confidence: {confidence}")
 
         return answer, confidence
     

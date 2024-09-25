@@ -17,6 +17,7 @@ from openeqa.utils.openai_utils import (
     prepare_openai_vision_messages,
     set_openai_key,
 )
+from openeqa.utils.caption_utils import Captions, create_captions
 from openeqa.utils.prompt_utils import load_prompt
 from openeqa.utils.videoagent import first_step, second_step
 
@@ -145,6 +146,8 @@ def main(args: argparse.Namespace):
         print("found {:,} existing results".format(len(results)))
     completed = [item["question_id"] for item in results]
 
+    cached_captions = Captions()
+
     # process data
     #* question 기준으로 iterate
     for idx, item in enumerate(tqdm.tqdm(dataset)):
@@ -156,15 +159,26 @@ def main(args: argparse.Namespace):
         if question_id in completed:
             continue  # skip existing
 
+        episode_id = item['episode_history']
+
         # extract scene paths
         folder = args.frames_directory / item["episode_history"]
         frames = sorted(folder.glob("*-rgb.png"))
         indices = np.round(np.linspace(0, len(frames) - 1, args.num_frames)).astype(int)
         paths = [str(frames[i]) for i in indices]
 
+        #* 0. question 과 무관하게 추출된 프레임에 대해 image captioning
+        #! if cached_captions.has_caption == True -> continue
+        for image in paths:
+            # create caption
+            single_caption = create_captions(image_paths=[image])
+            # save the caption to memory
+            cached_captions.add_caption(caption=single_caption, episode_id=episode_id, image_path=image)
+
         # generate answer
         question = item["question"]
         trial = 1
+
         '''answer = ask_question(
             question=question,
             image_paths=paths,
@@ -176,17 +190,25 @@ def main(args: argparse.Namespace):
             force=args.force,
         )'''
         while (trial < 2):
-            answer, confidence = first_step( #* images 들에 대해 captions 추출, answer 및 confidence 도출
-                question=question,
-                image_paths=paths,
-            )
+            if trial==1:
+                 #* caption 주고 answer 및 confidence 도출
+                answer, confidence = first_step(
+                    question=question,
+                    captions_data=cached_captions.captions_data[episode_id]
+                )
+
             if confidence < 3:
                 trial+=1
-                answer, confidence = second_step(
-                    question=question,
-                    episode_id='test',
-                    num_frames=5, # select multiple best frames
-                )
+                print("confidence is less than 3. try second step.")
+                # answer, confidence = second_step(
+                #     question=question,
+                #     episode_id=episode_id,
+                #     num_frames=5, # select multiple best frames
+                #     saved_captions=cached_captions.captions_data
+                # )
+
+            else:
+                break
 
         # store results
         results.append({"question_id": question_id, "answer": answer})
