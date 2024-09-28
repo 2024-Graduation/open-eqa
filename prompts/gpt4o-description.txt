@@ -1,0 +1,3 @@
+Based on the two captions provided, write a detailed description of the segment in the video.
+The first caption is {first_caption} and the second caption is {second_caption}.
+Include a description of any objects, furniture, or elements that might be present in the scene, as well as details about the room or environment (e.g., living room, kitchen, outdoor area).

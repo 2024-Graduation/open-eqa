@@ -1,0 +1,10 @@
+You have the following descriptions for different segments:
+
+{segment_descriptions}
+
+Given the above descriptions, and the following question:
+
+Question: "{question}"
+
+Identify and return the segment number (e.g., Segment 1, Segment 2, etc.) and its description that is most relevant to the question.
+Note that only return the selected caption that I gave you before, and except any of your words.

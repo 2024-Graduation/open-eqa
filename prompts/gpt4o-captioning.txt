@@ -1,0 +1,5 @@
+Analyze image carefully, identifying the room name and all objects. 
+For each image, provide exactly one concise sentence that includes both the objects and the room name.
+The sentence should contain information about all objects.
+Return the descriptions in the following format only, without any additional explanations
+{"description": "xxx"}
