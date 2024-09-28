@@ -59,7 +59,7 @@ def prepare_openai_vision_messages(
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
 def call_openai_api(
     messages: list,
-    model: str = "gpt-4",
+    model: str = "gpt-4o",
     seed: Optional[int] = None,
     max_tokens: int = 32,
     temperature: float = 0.2,
