@@ -24,9 +24,9 @@ def prepare_openai_messages(content: str):
 
 
 def prepare_openai_vision_messages(
-    prefix: Optional[str] = None,
+    prefix: Optional[str],
+    image_paths: Optional[List[str]],
     suffix: Optional[str] = None,
-    image_paths: Optional[List[str]] = None,
     image_size: Optional[int] = 512,
 ):
     if image_paths is None:
@@ -34,8 +34,7 @@ def prepare_openai_vision_messages(
 
     content = []
 
-    if prefix:
-        content.append({"text": prefix, "type": "text"})
+    content.append({"text": prefix, "type": "text"})
 
     for path in image_paths:
         frame = cv2.imread(path)
