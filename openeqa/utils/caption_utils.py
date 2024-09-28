@@ -2,7 +2,7 @@
 import base64
 import os
 import traceback
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import cv2
 import openai
@@ -16,14 +16,12 @@ class Captions():
     
     def add_caption(self, episode_id: str,
             image_path: int,
-            caption: str,
-            update: bool = False
+            caption: str
         ) -> None:
 
         caption = {
             "image_idx" : image_path,
-            "caption" : caption,
-            "update" : 0 if update==False else 1
+            "caption" : caption
         }
 
         if episode_id not in self.captions_data.keys():
@@ -36,6 +34,28 @@ class Captions():
 
         print("add_caption: ", caption)
         print("episode_captions " , self.captions_data[episode_id])
+    
+    def has_caption(self, episode_id: str, image_path: int) -> bool:
+        if episode_id in self.captions_data.keys():
+            captions_for_episode = self.captions_data[episode_id]
+            for caption in captions_for_episode:
+                if caption["image_idx"] == image_path:
+                    return True
+        return False
+
+    def get_caption(self, episode_id: str, segment: Tuple[int, int]) -> Optional[str]:
+        first_caption = ""
+        second_caption = ""
+        if episode_id in self.captions_data.keys():
+            captions_for_episode = self.captions_data[episode_id]
+            for caption in captions_for_episode:
+                # segment[0], segment[1] 에 해당하는 숫자가 caption["image_idx"](str)에 포함되어 있으면 caption["caption"]을 반환
+                if str(segment[0]) in caption["image_idx"]:
+                    first_caption = caption["caption"]
+                if str(segment[1]) in caption["image_idx"]:
+                    second_caption = caption["caption"]
+
+        return first_caption, second_caption
 
 def create_captions(
     image_paths: List,
@@ -53,12 +73,12 @@ def create_captions(
     try:
         set_openai_key(key=openai_key)
 
-        prompt = load_prompt("gpt4o")
-        prefix, suffix = prompt.split("User Query:")
+        prompt = load_prompt("gpt4o-captioning")
+        # prefix, suffix = prompt.split("User Query:")
         # suffix = "User Query:" + suffix.format(question=question)
 
         messages = prepare_openai_vision_messages(
-            prefix=prefix, suffix=suffix, image_paths=image_paths, image_size=image_size
+            prefix=prompt, image_paths=image_paths, image_size=image_size
         )
         output = call_openai_api(
             messages=messages,

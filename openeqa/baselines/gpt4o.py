@@ -12,6 +12,7 @@ from typing import List, Optional
 import numpy as np
 import tqdm
 
+from openeqa.utils.description_utils import Descriptions, create_descriptions
 from openeqa.utils.openai_utils import (
     call_openai_api,
     prepare_openai_vision_messages,
@@ -19,7 +20,7 @@ from openeqa.utils.openai_utils import (
 )
 from openeqa.utils.caption_utils import Captions, create_captions
 from openeqa.utils.prompt_utils import load_prompt
-from openeqa.utils.videoagent import first_step, second_step
+from openeqa.utils.videoagent import select_best_segment, get_final_answer
 
 
 def parse_args() -> argparse.Namespace:
@@ -136,8 +137,8 @@ def main(args: argparse.Namespace):
     assert "OPENAI_API_KEY" in os.environ
 
     # load dataset
-    dataset = json.load(args.dataset.open("r"))
-    print("found {:,} questions".format(len(dataset)))
+    qa_dataset = json.load(args.dataset.open("r"))
+    print("found {:,} questions".format(len(qa_dataset)))
 
     # load results
     results = []
@@ -147,10 +148,11 @@ def main(args: argparse.Namespace):
     completed = [item["question_id"] for item in results]
 
     cached_captions = Captions()
+    cached_descriptions = Descriptions()
 
     # process data
     #* question 기준으로 iterate
-    for idx, item in enumerate(tqdm.tqdm(dataset)):
+    for idx, item in enumerate(tqdm.tqdm(qa_dataset)):
         if args.dry_run and idx >= 5:
             break
 
@@ -159,6 +161,7 @@ def main(args: argparse.Namespace):
         if question_id in completed:
             continue  # skip existing
 
+###
         episode_id = item['episode_history']
 
         # extract scene paths
@@ -167,48 +170,67 @@ def main(args: argparse.Namespace):
         indices = np.round(np.linspace(0, len(frames) - 1, args.num_frames)).astype(int)
         paths = [str(frames[i]) for i in indices]
 
+        segments = [(indices[i], indices[i + 1]) for i in range(len(indices) - 1)]
+
         #* 0. question 과 무관하게 추출된 프레임에 대해 image captioning
-        #! if cached_captions.has_caption == True -> continue
-        for image in paths:
+        for image_path in paths:
+            # check if caption exists
+            if cached_captions.has_caption(episode_id=episode_id, image_path=image_path) == True:
+                continue
             # create caption
-            single_caption = create_captions(image_paths=[image])
+            single_caption = create_captions(image_paths=[image_path])
             # save the caption to memory
-            cached_captions.add_caption(caption=single_caption, episode_id=episode_id, image_path=image)
-
-        # generate answer
+            cached_captions.add_caption(caption=single_caption, episode_id=episode_id, image_path=image_path)
+        
+        #* create description for each segment
+        for segment in segments:
+            # only use 경계 프레임의 caption
+            description = create_descriptions(
+                episode_id=episode_id,
+                segment=segment,
+                cached_captions=cached_captions
+            )
+            cached_descriptions.add_description(description=description, episode_id=episode_id, segment=segment)
+        
+        #* 1. 가장 question dependent 한 segment 선택
         question = item["question"]
-        trial = 1
+        # best_segment = select_best_segment(
+        #     question=question,
+        #     episode_id=episode_id,
+        #     segments=segments,
+        #     cached_descriptions=cached_descriptions
+        # )
+        best_segment = (30, 50)
+        length = best_segment[1] - best_segment[0]
+        
+        SEGMENT_LENGTH_LIMIT = 3
+        while length > SEGMENT_LENGTH_LIMIT:
+            divide_segment = []
+            divide_segment.append((best_segment[0], (best_segment[0]+best_segment[1])//2)) # 30, 40
+            divide_segment.append(((best_segment[0]+best_segment[1])//2, best_segment[1])) # 40, 50
 
-        '''answer = ask_question(
-            question=question,
-            image_paths=paths,
-            image_size=args.image_size,
-            openai_model=args.model,
-            openai_seed=args.seed,
-            openai_max_tokens=args.max_tokens,
-            openai_temperature=args.temperature,
-            force=args.force,
-        )'''
-        while (trial < 2):
-            if trial==1:
-                 #* caption 주고 answer 및 confidence 도출
-                answer, confidence = first_step(
-                    question=question,
-                    captions_data=cached_captions.captions_data[episode_id]
-                )
+            # best_segment = select_best_segment(
+            #     question=question,
+            #     episode_id=episode_id,
+            #     segments=divide_segment,
+            #     cached_descriptions=cached_descriptions
+            # )
+            best_segment = divide_segment[0]
+            print("updated best segment: ", best_segment)
+            length = best_segment[1] - best_segment[0]
+        
+        #* 2. 해당 segment를 구성하는 이미지들을 이용하여 question에 대한 답변 도출
+        #  해당 segment을 구성하는 이미지들의 caption, 이때까지의 captions 사용은 우선 보류
+        print("best segment: ", best_segment)
+        start_idx = best_segment[0]
+        end_idx = best_segment[1]
+        segment_paths = paths[start_idx:end_idx]
+        # for image_path in segment_paths:
+        #     caption = create_captions(image_paths=[image_path])
+        #     cached_captions.add_caption(caption=caption, episode_id=episode_id, image_path=image_path)
 
-            if confidence < 3:
-                trial+=1
-                print("confidence is less than 3. try second step.")
-                # answer, confidence = second_step(
-                #     question=question,
-                #     episode_id=episode_id,
-                #     num_frames=5, # select multiple best frames
-                #     saved_captions=cached_captions.captions_data
-                # )
-
-            else:
-                break
+        answer = get_final_answer(question=question, segment_paths=segment_paths)
+        # answer = get_final_answer(question=question, segment_paths=segment_paths, cached_captions=cached_captions)
 
         # store results
         results.append({"question_id": question_id, "answer": answer})
