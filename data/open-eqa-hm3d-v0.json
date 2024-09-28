@@ -174,7 +174,7 @@
     "episode_history": "hm3d-v0/002-hm3d-wcojb4TFT35"
   },
   {
-    "question": "Is the house doorway open or closed?q",
+    "question": "Is the house doorway open or closed?",
     "answer": "Open",
     "category": "object state recognition",
     "question_id": "3a803472-47cd-4903-8380-d0b00efbbf08",
