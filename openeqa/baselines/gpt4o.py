@@ -170,7 +170,7 @@ def main(args: argparse.Namespace):
         indices = np.round(np.linspace(0, len(frames) - 1, args.num_frames)).astype(int)
         paths = [str(frames[i]) for i in indices]
 
-        segments = [(indices[i], indices[i + 1]) for i in range(len(indices) - 1)]
+        segments = [(indices[i], indices[i + 1]) for i in range(len(indices) - 1)] # TUPLE LIST
 
         #* 0. question 과 무관하게 추출된 프레임에 대해 image captioning
         for image_path in paths:
@@ -224,7 +224,7 @@ def main(args: argparse.Namespace):
         print("best segment: ", best_segment)
         start_idx = best_segment[0]
         end_idx = best_segment[1]
-        segment_paths = [str(frames[i]) for i in range(start_idx, end_idx)]
+        segment_paths = [str(frames[i]) for i in range(start_idx, end_idx+1)]
         # for image_path in segment_paths:
         #     caption = create_captions(image_paths=[image_path])
         #     cached_captions.add_caption(caption=caption, episode_id=episode_id, image_path=image_path)

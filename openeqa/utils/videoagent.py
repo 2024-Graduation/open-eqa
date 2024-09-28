@@ -16,7 +16,7 @@ def select_best_segment(question, episode_id, segments, cached_descriptions):
     segment_descriptions = []
     for segment in segments:
         segment_description = cached_descriptions.get_description(episode_id=episode_id, segment=segment)
-        segment_descriptions.append(segment_description)
+        segment_descriptions.append(segment_description) # ["", "", ...]
     
     messages = prepare_openai_messages(content = prompt.format(
         question=question,
