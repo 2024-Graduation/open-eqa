@@ -11,6 +11,11 @@ from openeqa.utils.prompt_utils import load_prompt
 
 client = OpenAI()
 
+def parse_description_output(output: str) -> str:
+    print("parse_description_output output: ", output)
+    output = json.loads(output)
+    return output["description"]
+
 def select_best_segment(question, episode_id, segments, cached_descriptions):
     prompt = load_prompt("gpt4o-segment-selection")
     segment_descriptions = []
@@ -23,8 +28,16 @@ def select_best_segment(question, episode_id, segments, cached_descriptions):
         segment_descriptions=segment_descriptions
     ))
 
-    print("select best segment output: ", messages)
-    segment = cached_descriptions.find_segment(episode_id=episode_id, description=messages)
+    output = call_openai_api(
+        messages=messages,
+        model="gpt-4o",
+        seed=1234,
+        max_tokens=128,
+        temperature=0.2
+    )
+
+    print("select_best_segment output: ", parse_description_output(output)) # {segment: [0, 1]}
+    segment = cached_descriptions.find_segment(episode_id=episode_id, my_description=parse_description_output(output))
     return segment
 
 def get_final_answer(

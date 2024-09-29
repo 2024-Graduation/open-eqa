@@ -194,13 +194,12 @@ def main(args: argparse.Namespace):
         
         #* 1. 가장 question dependent 한 segment 선택
         question = item["question"]
-        # best_segment = select_best_segment(
-        #     question=question,
-        #     episode_id=episode_id,
-        #     segments=segments,
-        #     cached_descriptions=cached_descriptions
-        # )
-        best_segment = (30, 50)
+        best_segment = select_best_segment(
+            question=question,
+            episode_id=episode_id,
+            segments=segments,
+            cached_descriptions=cached_descriptions
+        )
         length = best_segment[1] - best_segment[0]
         
         SEGMENT_LENGTH_LIMIT = 3
@@ -209,13 +208,12 @@ def main(args: argparse.Namespace):
             divide_segment.append((best_segment[0], (best_segment[0]+best_segment[1])//2)) # 30, 40
             divide_segment.append(((best_segment[0]+best_segment[1])//2, best_segment[1])) # 40, 50
 
-            # best_segment = select_best_segment(
-            #     question=question,
-            #     episode_id=episode_id,
-            #     segments=divide_segment,
-            #     cached_descriptions=cached_descriptions
-            # )
-            best_segment = divide_segment[0]
+            best_segment = select_best_segment(
+                question=question,
+                episode_id=episode_id,
+                segments=divide_segment,
+                cached_descriptions=cached_descriptions
+            )
             print("updated best segment: ", best_segment)
             length = best_segment[1] - best_segment[0]
         

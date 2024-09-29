@@ -32,8 +32,8 @@ class Captions():
 
         self.captions_data[episode_id] = captions_for_episode
 
-        print("add_caption: ", caption)
-        print("episode_captions " , self.captions_data[episode_id])
+        # print("add_caption: ", caption)
+        # print("episode_captions " , self.captions_data[episode_id])
     
     def has_caption(self, episode_id: str, image_path: int) -> bool:
         if episode_id in self.captions_data.keys():
@@ -88,7 +88,7 @@ def create_captions(
             temperature=openai_temperature,
         )
 
-        print("caption output: ", output)
+        # print("caption output: ", output)
         return output
     
     except Exception as e:

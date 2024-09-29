@@ -1,3 +1,5 @@
-Based on the two captions provided, write a detailed description of the segment in the video.
+Based on the two captions provided, write a general description of the static elements present in the segment of the video between them.
 The first caption is {first_caption} and the second caption is {second_caption}.
-Include a description of any objects, furniture, or elements that might be present in the scene, as well as details about the room or environment (e.g., living room, kitchen, outdoor area).
+Be sure to include the name of the room or area (e.g., living room, kitchen, outdoor area).
+Include a description of any objects, furniture, or elements that might be present in the scene, as well as environment.
+The result should be in the following format: {{"description": "xxx"}}.

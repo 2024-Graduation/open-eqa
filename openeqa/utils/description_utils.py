@@ -4,6 +4,7 @@ import traceback
 from openeqa.utils.caption_utils import Captions
 from openeqa.utils.prompt_utils import *
 from openeqa.utils.openai_utils import *
+from openeqa.utils.videoagent import parse_description_output
 
 class Descriptions():
     descriptions_data = {}
@@ -32,14 +33,17 @@ class Descriptions():
                     return description["description"]
         return None
     
-    def find_segment(self, episode_id: str, description: str) -> Optional[Tuple[int, int]]:
+    def find_segment(self, episode_id: str, my_description: str) -> Optional[Tuple[int, int]]:
         if episode_id in self.descriptions_data.keys():
             descriptions_for_episode = self.descriptions_data[episode_id]
             for description in descriptions_for_episode:
-                if description["description"] == description:
+                print("description: ", description["description"])
+                print("my_description: ", my_description)
+                if description["description"] == my_description:
+                    print("description: ", my_description)
                     return description["segment"]
-        return None
-    
+        raise ValueError("Description not found")
+
 def create_descriptions(
     episode_id: str,
     segment: Tuple[int, int],
@@ -64,7 +68,7 @@ def create_descriptions(
             first_caption=first_caption,
             second_caption=second_caption
         )
-        print("description content: ", content)
+        # print("description content: ", content)
 
         messages = prepare_openai_messages(content=content)
         output = call_openai_api(
@@ -74,6 +78,8 @@ def create_descriptions(
             max_tokens=openai_max_tokens,
             temperature=openai_temperature,
         )
+
+        output = parse_description_output(output)
 
         print("description output: ", output)
         return output
