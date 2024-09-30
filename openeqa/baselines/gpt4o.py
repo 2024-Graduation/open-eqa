@@ -263,6 +263,20 @@ def main(args: argparse.Namespace):
         print("\nAlmost done. let's get the final answer.")
         answer = get_final_answer(question=question, segment_paths=segment_paths)
         # answer = get_final_answer(question=question, segment_paths=segment_paths, cached_captions=cached_captions)
+        # answer = get_final_answer(question=question, segment_paths=segment_paths, episode_id=episode_id, cached_descriptions=cached_descriptions)
+
+        # # JSON 데이터를 파일로 저장
+        # with open("description_data.json", 'w', encoding='utf-8') as file:
+        #     json.dump(cached_descriptions.descriptions_data, file, ensure_ascii=False, indent=4)
+
+        # # JSON 데이터를 파일로 저장
+        # with open("caption_data.json", 'w', encoding='utf-8') as file:
+        #     json.dump(cached_captions.captions_data, file, ensure_ascii=False, indent=4)
+
+        # print("description data : \n", cached_descriptions.descriptions_data)
+        # print("captions_data: , \n", cached_captions.captions_data)
+
+        print(f"description_data, caption_data 파일이 성공적으로 저장되었습니다.")
 
         # store results
         results.append({"question_id": question_id, "answer": answer})

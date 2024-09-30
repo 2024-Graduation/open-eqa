@@ -19,6 +19,18 @@ def parse_description_output(output: str) -> str:
     output = json.loads(output)
     return output["description"]
 
+def parse_final_answer(output: str) -> str:
+    output = json.loads(output)
+    return output["final_answer"]
+
+def get_segment_descriptions(episode_id, segments, cached_descriptions):
+    segment_descriptions = []
+    for segment in segments: # tuple
+        segment_description = cached_descriptions.get_description(episode_id=episode_id, segment=segment)
+        segment_descriptions.append(segment_description) # ["", "", ...]
+    
+    return segment_descriptions
+
 def select_best_segment(
         question: str,
         episode_id: str,
@@ -26,11 +38,8 @@ def select_best_segment(
         cached_descriptions
     ) -> Tuple[int, int]:
     prompt = load_prompt("gpt4o-segment-selection")
-    segment_descriptions = []
-    for segment in segments: # tuple
-        segment_description = cached_descriptions.get_description(episode_id=episode_id, segment=segment)
-        segment_descriptions.append(segment_description) # ["", "", ...]
-    
+    segment_descriptions = get_segment_descriptions(episode_id=episode_id, segments=segments, cached_descriptions=cached_descriptions)
+
     messages = prepare_openai_messages(content = prompt.format(
         question=question,
         segment_description=segment_descriptions
@@ -51,7 +60,9 @@ def select_best_segment(
 def get_final_answer(
     question:str,
     segment_paths: list,
+    episode_id: str = None,
     cached_captions: list = None,
+    cached_descriptions: list = None,
     image_size: int = 512,
     openai_key: Optional[str] = None,
     openai_model: str = "gpt-4o",
@@ -63,12 +74,15 @@ def get_final_answer(
 
     try:
         set_openai_key(key=openai_key)
-        prompt = load_prompt("gpt4o-answer")
+        prompt = load_prompt("gpt4o")
         content = prompt.format(question=question)
         suffix = ""
 
         if cached_captions:
             suffix = suffix.format(captions=cached_captions)
+        
+        if cached_descriptions:
+            suffix = f"Descriptions: {get_segment_descriptions(episode_id=episode_id, segments=segment_paths, cached_descriptions=cached_descriptions)}"
 
         messages = prepare_openai_vision_messages(
             prefix=content, suffix=suffix, image_paths=segment_paths, image_size=image_size
@@ -82,7 +96,9 @@ def get_final_answer(
         )
 
         print("final answer output: ", output) # {final_answer: "xxx"}
-        return output
+
+        return parse_final_answer(output)
+        # return output
     
     except Exception as e:
         if not force:
