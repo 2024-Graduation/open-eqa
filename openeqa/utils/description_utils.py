@@ -37,10 +37,7 @@ class Descriptions():
         if episode_id in self.descriptions_data.keys():
             descriptions_for_episode = self.descriptions_data[episode_id]
             for description in descriptions_for_episode:
-                print("description: ", description["description"])
-                print("my_description: ", my_description)
                 if description["description"] == my_description:
-                    print("description: ", my_description)
                     return description["segment"]
         raise ValueError("Description not found")
 
@@ -63,7 +60,7 @@ def create_descriptions(
         set_openai_key(key=openai_key)
         prompt = load_prompt("gpt4o-description")
 
-        first_caption, second_caption = cached_captions.get_caption(episode_id=episode_id, segment=segment)
+        first_caption, second_caption = cached_captions.get_segment_captions(episode_id=episode_id, segment=segment)
         content = prompt.format(
             first_caption=first_caption,
             second_caption=second_caption
@@ -75,13 +72,11 @@ def create_descriptions(
             messages=messages,
             model=openai_model,
             seed=openai_seed,
-            max_tokens=openai_max_tokens,
             temperature=openai_temperature,
         )
 
         output = parse_description_output(output)
 
-        print("description output: ", output)
         return output
     
     except Exception as e:

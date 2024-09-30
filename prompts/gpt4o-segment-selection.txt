@@ -1,6 +1,6 @@
 You have the following descriptions for different segments:
 
-{segment_descriptions} 
+{segment_description} 
 
 Given the above descriptions and the following question:
 

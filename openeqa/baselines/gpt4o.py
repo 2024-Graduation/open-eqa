@@ -8,7 +8,7 @@ import json
 import os
 import traceback
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import numpy as np
 import tqdm
 
@@ -18,7 +18,7 @@ from openeqa.utils.openai_utils import (
     prepare_openai_vision_messages,
     set_openai_key,
 )
-from openeqa.utils.caption_utils import Captions, create_captions
+from openeqa.utils.caption_utils import Captions, create_caption
 from openeqa.utils.prompt_utils import load_prompt
 from openeqa.utils.videoagent import select_best_segment, get_final_answer
 
@@ -122,7 +122,6 @@ def ask_question(
             messages=messages,
             model=openai_model,
             seed=openai_seed,
-            max_tokens=openai_max_tokens,
             temperature=openai_temperature,
         )
         return output
@@ -131,6 +130,17 @@ def ask_question(
             traceback.print_exc()
             raise e
 
+def get_segment_paths(
+        frames: list,
+        segment: Tuple[int, int]):
+    
+    return [str(frames[segment[0]]), str(frames[segment[1]])]
+
+def get_segment_single_path(
+        frames: list,
+        idx: int):
+    
+    return str(frames[idx])
 
 def main(args: argparse.Namespace):
     # check for openai api key
@@ -173,18 +183,20 @@ def main(args: argparse.Namespace):
         segments = [(indices[i], indices[i + 1]) for i in range(len(indices) - 1)] # TUPLE LIST
 
         #* 0. question 과 무관하게 추출된 프레임에 대해 image captioning
+        print("image captioning ...")
         for image_path in paths:
             # check if caption exists
-            if cached_captions.has_caption(episode_id=episode_id, image_path=image_path) == True:
+            if cached_captions.has_caption(episode_id=episode_id, image_idx=image_path) == True:
                 continue
             # create caption
-            single_caption = create_captions(image_paths=[image_path])
+            single_caption = create_caption(image_paths=[image_path])
             # save the caption to memory
             cached_captions.add_caption(caption=single_caption, episode_id=episode_id, image_path=image_path)
         
+        print("captioning done\n")
+        print("create descriptions for segments ...")
         #* create description for each segment
         for segment in segments:
-            # only use 경계 프레임의 caption
             description = create_descriptions(
                 episode_id=episode_id,
                 segment=segment,
@@ -192,6 +204,8 @@ def main(args: argparse.Namespace):
             )
             cached_descriptions.add_description(description=description, episode_id=episode_id, segment=segment)
         
+        print("descriptioning done\n")
+        print("let's select the best q-dependent segment")
         #* 1. 가장 question dependent 한 segment 선택
         question = item["question"]
         best_segment = select_best_segment(
@@ -200,13 +214,31 @@ def main(args: argparse.Namespace):
             segments=segments,
             cached_descriptions=cached_descriptions
         )
-        length = best_segment[1] - best_segment[0]
+        length = best_segment[1] - best_segment[0] + 1
         
         SEGMENT_LENGTH_LIMIT = 3
         while length > SEGMENT_LENGTH_LIMIT:
+            print(f"\nsegment is too long: {length}. let's divide the segment and try again.")
             divide_segment = []
-            divide_segment.append((best_segment[0], (best_segment[0]+best_segment[1])//2)) # 30, 40
-            divide_segment.append(((best_segment[0]+best_segment[1])//2, best_segment[1])) # 40, 50
+            middle_idx = int((best_segment[0]+best_segment[1])//2)
+            divide_segment.append((best_segment[0], middle_idx)) # 30, 40
+            divide_segment.append((middle_idx, best_segment[1])) # 40, 50
+            
+            middle_path = get_segment_single_path(frames=frames, idx=middle_idx)
+            if cached_captions.has_caption(episode_id=episode_id, image_idx=middle_idx) == False:
+                caption = create_caption(image_paths=[middle_path])
+                cached_captions.add_caption(episode_id=episode_id, image_path=middle_path, caption=caption)
+            
+            for segment in divide_segment:
+                if cached_descriptions.get_description(episode_id=episode_id, segment=segment):
+                    continue
+                
+                description = create_descriptions(
+                    episode_id=episode_id,
+                    segment=segment,
+                    cached_captions=cached_captions
+                )
+                cached_descriptions.add_description(description=description, episode_id=episode_id, segment=segment)
 
             best_segment = select_best_segment(
                 question=question,
@@ -215,8 +247,9 @@ def main(args: argparse.Namespace):
                 cached_descriptions=cached_descriptions
             )
             print("updated best segment: ", best_segment)
-            length = best_segment[1] - best_segment[0]
+            length = best_segment[1] - best_segment[0] + 1
         
+        print("selecting done")
         #* 2. 해당 segment를 구성하는 이미지들을 이용하여 question에 대한 답변 도출
         #  해당 segment을 구성하는 이미지들의 caption, 이때까지의 captions 사용은 우선 보류
         print("best segment: ", best_segment)
@@ -227,6 +260,7 @@ def main(args: argparse.Namespace):
         #     caption = create_captions(image_paths=[image_path])
         #     cached_captions.add_caption(caption=caption, episode_id=episode_id, image_path=image_path)
 
+        print("\nAlmost done. let's get the final answer.")
         answer = get_final_answer(question=question, segment_paths=segment_paths)
         # answer = get_final_answer(question=question, segment_paths=segment_paths, cached_captions=cached_captions)
 

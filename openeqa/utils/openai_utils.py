@@ -61,7 +61,7 @@ def call_openai_api(
     messages: list,
     model: str = "gpt-4o",
     seed: Optional[int] = None,
-    max_tokens: int = 32,
+    max_tokens: int = 200,
     temperature: float = 0.2,
     verbose: bool = False,
 ):

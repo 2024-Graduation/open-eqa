@@ -15,7 +15,7 @@ class Captions():
     captions_data = {}
     
     def add_caption(self, episode_id: str,
-            image_path: int,
+            image_path: str,
             caption: str
         ) -> None:
 
@@ -35,15 +35,15 @@ class Captions():
         # print("add_caption: ", caption)
         # print("episode_captions " , self.captions_data[episode_id])
     
-    def has_caption(self, episode_id: str, image_path: int) -> bool:
+    def has_caption(self, episode_id: str, image_idx: int) -> bool:
         if episode_id in self.captions_data.keys():
             captions_for_episode = self.captions_data[episode_id]
             for caption in captions_for_episode:
-                if caption["image_idx"] == image_path:
+                if caption["image_idx"] == image_idx:
                     return True
         return False
 
-    def get_caption(self, episode_id: str, segment: Tuple[int, int]) -> Optional[str]:
+    def get_segment_captions(self, episode_id: str, segment: Tuple[int, int]) -> Optional[str]:
         first_caption = ""
         second_caption = ""
         if episode_id in self.captions_data.keys():
@@ -57,13 +57,12 @@ class Captions():
 
         return first_caption, second_caption
 
-def create_captions(
+def create_caption(
     image_paths: List,
     image_size: int = 512,
     openai_key: Optional[str] = None,
     openai_model: str = "gpt-4o",
     openai_seed: int = 1234,
-    openai_max_tokens: int = 128,
     openai_temperature: float = 0.2,
     force: bool = False
 ) -> Optional[str]:
@@ -84,7 +83,6 @@ def create_captions(
             messages=messages,
             model=openai_model,
             seed=openai_seed,
-            max_tokens=openai_max_tokens,
             temperature=openai_temperature,
         )
 
