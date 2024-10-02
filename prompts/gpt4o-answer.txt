@@ -1,0 +1,6 @@
+Given the frames, answer the following question:
+```
+{question}
+```
+Please think carefully and write the best answer in format {{"final_answer": "xxx"}}. 
+Note that only one answer is returned for the question.

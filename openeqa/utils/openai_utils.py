@@ -24,9 +24,9 @@ def prepare_openai_messages(content: str):
 
 
 def prepare_openai_vision_messages(
-    prefix: Optional[str] = None,
+    prefix: Optional[str],
+    image_paths: Optional[List[str]],
     suffix: Optional[str] = None,
-    image_paths: Optional[List[str]] = None,
     image_size: Optional[int] = 512,
 ):
     if image_paths is None:
@@ -34,8 +34,7 @@ def prepare_openai_vision_messages(
 
     content = []
 
-    if prefix:
-        content.append({"text": prefix, "type": "text"})
+    content.append({"text": prefix, "type": "text"})
 
     for path in image_paths:
         frame = cv2.imread(path)
@@ -60,9 +59,9 @@ def prepare_openai_vision_messages(
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
 def call_openai_api(
     messages: list,
-    model: str = "gpt-4",
+    model: str = "gpt-4o",
     seed: Optional[int] = None,
-    max_tokens: int = 32,
+    max_tokens: int = 200,
     temperature: float = 0.2,
     verbose: bool = False,
 ):

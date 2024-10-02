@@ -1,0 +1,11 @@
+You have the following descriptions for different segments:
+
+{segment_description} 
+
+Given the above descriptions and the following question:
+
+Question: "{question}"
+
+Identify and return the description that is most relevant to the question.
+Only return the selected description exactly as it was given, without adding any additional words.
+The result should be in the following format: {{"description": "xxx"}}.
