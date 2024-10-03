@@ -74,7 +74,7 @@ def get_final_answer(
 
     try:
         set_openai_key(key=openai_key)
-        prompt = load_prompt("gpt4o")
+        prompt = load_prompt("gpt4o-answer")
         content = prompt.format(question=question)
         suffix = ""
 
