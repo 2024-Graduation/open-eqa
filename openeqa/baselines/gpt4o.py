@@ -100,6 +100,7 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     args.output_directory.mkdir(parents=True, exist_ok=True)
     SEGMENT_LENGTH_LIMIT = args.length_limit
+    print("num frames: {}".format(args.num_frames), end="")
     print(f"segment length limit: {SEGMENT_LENGTH_LIMIT}")
     args.output_path = args.output_directory / (
         args.dataset.stem + "-{}-{}-{}.json".format(args.model, args.num_frames, SEGMENT_LENGTH_LIMIT)
@@ -204,7 +205,7 @@ def main(args: argparse.Namespace):
         segments = [(indices[i], indices[i + 1]) for i in range(len(indices) - 1)] # TUPLE LIST
 
         #* 0. question 과 무관하게 추출된 프레임에 대해 image captioning
-        print("image captioning ...", end="")
+        print("\nimage captioning ...", end="")
         for image_path in paths:
             # check if caption exists
             if cached_captions.has_caption(episode_id=episode_id, image_idx=image_path) == True:
