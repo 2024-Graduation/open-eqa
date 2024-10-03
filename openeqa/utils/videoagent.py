@@ -20,7 +20,12 @@ def parse_description_output(output: str) -> str:
     return output["description"]
 
 def parse_final_answer(output: str) -> str:
-    output = json.loads(output)
+    try:
+        output = json.loads(output)
+    except json.JSONDecodeError:
+        print("JsonDecodeError: output: ", output)
+        return output
+
     return output["final_answer"]
 
 def get_segment_descriptions(episode_id, segments, cached_descriptions):

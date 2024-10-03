@@ -23,8 +23,16 @@ from openeqa.utils.prompt_utils import load_prompt
 from openeqa.utils.videoagent import select_best_segment, get_final_answer
 
 
+SEGMENT_LENGTH_LIMIT = 10
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--length-limit",
+        type=int,
+        default=10,
+        help="segment length limit (default: 10)",
+    ),
     parser.add_argument(
         "--dataset",
         type=Path,
@@ -70,7 +78,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-tokens",
         type=int,
-        default=128,
+        default=200,
         help="gpt maximum tokens (default: 128)",
     )
     parser.add_argument(
@@ -91,8 +99,10 @@ def parse_args() -> argparse.Namespace:
     )
     args = parser.parse_args()
     args.output_directory.mkdir(parents=True, exist_ok=True)
+    SEGMENT_LENGTH_LIMIT = args.length_limit
+    print(f"segment length limit: {SEGMENT_LENGTH_LIMIT}")
     args.output_path = args.output_directory / (
-        args.dataset.stem + "-{}-{}.json".format(args.model, args.seed)
+        args.dataset.stem + "-{}-{}-{}.json".format(args.model, args.num_frames, SEGMENT_LENGTH_LIMIT)
     )
     return args
 
@@ -142,6 +152,17 @@ def get_segment_single_path(
     
     return str(frames[idx])
 
+# 데이터를 재귀적으로 탐색하여 np.int64를 int로 변환하는 함수
+def convert_np_types(data):
+    if isinstance(data, dict):
+        return {key: convert_np_types(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [convert_np_types(element) for element in data]
+    elif isinstance(data, np.integer):
+        return int(data)
+    else:
+        return data
+    
 def main(args: argparse.Namespace):
     # check for openai api key
     assert "OPENAI_API_KEY" in os.environ
@@ -183,7 +204,7 @@ def main(args: argparse.Namespace):
         segments = [(indices[i], indices[i + 1]) for i in range(len(indices) - 1)] # TUPLE LIST
 
         #* 0. question 과 무관하게 추출된 프레임에 대해 image captioning
-        print("image captioning ...")
+        print("image captioning ...", end="")
         for image_path in paths:
             # check if caption exists
             if cached_captions.has_caption(episode_id=episode_id, image_idx=image_path) == True:
@@ -194,7 +215,7 @@ def main(args: argparse.Namespace):
             cached_captions.add_caption(caption=single_caption, episode_id=episode_id, image_path=image_path)
         
         print("captioning done\n")
-        print("create descriptions for segments ...")
+        print("create descriptions for segments ...", end="")
         #* create description for each segment
         for segment in segments:
             description = create_descriptions(
@@ -205,9 +226,10 @@ def main(args: argparse.Namespace):
             cached_descriptions.add_description(description=description, episode_id=episode_id, segment=segment)
         
         print("descriptioning done\n")
-        print("let's select the best q-dependent segment")
         #* 1. 가장 question dependent 한 segment 선택
         question = item["question"]
+        print("Let's select the best q-dependent segment: ", question)
+
         best_segment = select_best_segment(
             question=question,
             episode_id=episode_id,
@@ -215,14 +237,16 @@ def main(args: argparse.Namespace):
             cached_descriptions=cached_descriptions
         )
         length = best_segment[1] - best_segment[0] + 1
+        print("segment length: ", length)
         
-        SEGMENT_LENGTH_LIMIT = 3
+        SEGMENT_LENGTH_LIMIT = args.length_limit
         while length > SEGMENT_LENGTH_LIMIT:
-            print(f"\nsegment is too long: {length}. let's divide the segment and try again.")
+            print(f"\nsegment is too long. length limit is {SEGMENT_LENGTH_LIMIT}.\nlet's divide the segment and try again.")
             divide_segment = []
             middle_idx = int((best_segment[0]+best_segment[1])//2)
-            divide_segment.append((best_segment[0], middle_idx)) # 30, 40
-            divide_segment.append((middle_idx, best_segment[1])) # 40, 50
+            divide_segment.append((best_segment[0], middle_idx))
+            divide_segment.append((middle_idx, best_segment[1]))
+            print("divided segments: ", divide_segment)
             
             middle_path = get_segment_single_path(frames=frames, idx=middle_idx)
             if cached_captions.has_caption(episode_id=episode_id, image_idx=middle_idx) == False:
@@ -248,6 +272,7 @@ def main(args: argparse.Namespace):
             )
             print("updated best segment: ", best_segment)
             length = best_segment[1] - best_segment[0] + 1
+            print("updated segment length: ", length)
         
         print("selecting done")
         #* 2. 해당 segment를 구성하는 이미지들을 이용하여 question에 대한 답변 도출
@@ -265,18 +290,25 @@ def main(args: argparse.Namespace):
         # answer = get_final_answer(question=question, segment_paths=segment_paths, cached_captions=cached_captions)
         # answer = get_final_answer(question=question, segment_paths=segment_paths, episode_id=episode_id, cached_descriptions=cached_descriptions)
 
-        # # JSON 데이터를 파일로 저장
-        # with open("description_data.json", 'w', encoding='utf-8') as file:
-        #     json.dump(cached_descriptions.descriptions_data, file, ensure_ascii=False, indent=4)
+        '''try:
+            description_data_serializable = convert_np_types(cached_descriptions.descriptions_data)
+            caption_data_serializable = convert_np_types(cached_captions.captions_data)
 
-        # # JSON 데이터를 파일로 저장
-        # with open("caption_data.json", 'w', encoding='utf-8') as file:
-        #     json.dump(cached_captions.captions_data, file, ensure_ascii=False, indent=4)
+            # JSON 데이터를 파일로 저장
+            with open("description_data.json", 'w', encoding='utf-8') as file:
+                json.dump(description_data_serializable, file, ensure_ascii=False, indent=2)
 
-        # print("description data : \n", cached_descriptions.descriptions_data)
-        # print("captions_data: , \n", cached_captions.captions_data)
+            # JSON 데이터를 파일로 저장
+            with open("caption_data.json", 'w', encoding='utf-8') as file:
+                json.dump(caption_data_serializable, file, ensure_ascii=False, indent=2)
 
-        print(f"description_data, caption_data 파일이 성공적으로 저장되었습니다.")
+            print(f"description_data, caption_data 파일이 성공적으로 저장되었습니다.")
+        
+        except Exception as e:
+            print("file save failed : ", e)
+            # print("description data : \n", cached_descriptions.descriptions_data)
+            # print("captions_data: , \n", cached_captions.captions_data)'''
+
 
         # store results
         results.append({"question_id": question_id, "answer": answer})
