@@ -16,14 +16,20 @@ def parse_description_output(output: str) -> str:
         output = output[output.find("```json") + len("```json"):].strip()
         if output.endswith("```"):
             output = output[:-3].strip()
-    output = json.loads(output)
+
+    try:
+        output = json.loads(output)
+    except json.JSONDecodeError:
+        print("JsonDecodeError: description output: ", output)
+        return output
+    
     return output["description"]
 
 def parse_final_answer(output: str) -> str:
     try:
         output = json.loads(output)
     except json.JSONDecodeError:
-        print("JsonDecodeError: output: ", output)
+        print("JsonDecodeError: final answer output: ", output)
         return output
 
     return output["final_answer"]
@@ -52,7 +58,6 @@ def select_best_segment(
 
     output = call_openai_api(
         messages=messages,
-        model="gpt-4o",
         seed=1234,
         temperature=0.2,
         # verbose=True

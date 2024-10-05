@@ -39,6 +39,10 @@ class Descriptions():
             for description in descriptions_for_episode:
                 if description["description"] == my_description:
                     return description["segment"]
+        
+        print("my_description: ", my_description)
+        print("episode_id: ", episode_id)
+        print("descriptions_for_episode: ", descriptions_for_episode)
         raise ValueError("Description not found")
 
 def create_descriptions(

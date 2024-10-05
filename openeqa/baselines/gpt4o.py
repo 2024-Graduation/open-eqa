@@ -241,7 +241,8 @@ def main(args: argparse.Namespace):
         print("segment length: ", length)
         
         SEGMENT_LENGTH_LIMIT = args.length_limit
-        while length > SEGMENT_LENGTH_LIMIT:
+        repeat = 0
+        while (length > SEGMENT_LENGTH_LIMIT):
             print(f"\nsegment is too long. length limit is {SEGMENT_LENGTH_LIMIT}.\nlet's divide the segment and try again.")
             divide_segment = []
             middle_idx = int((best_segment[0]+best_segment[1])//2)
@@ -273,8 +274,24 @@ def main(args: argparse.Namespace):
             )
             print("updated best segment: ", best_segment)
             length = best_segment[1] - best_segment[0] + 1
+            # check best_segment == divide_segment
+            if best_segment in divide_segment:
+                repeat += 1
+                print("repeat: ", repeat)
+            
+            if repeat > 5:
+                print("=====================================================================================================")
+                print("cached descriptions: ")
+                print(cached_descriptions.descriptions_data)
+                print("cached captions: ")
+                print(cached_captions.captions_data)
+                print("selected segment: ", best_segment)
+                print("selected segment description: ", cached_descriptions.get_description(episode_id=episode_id, segment=best_segment))
+                raise ValueError("too many repeats")
+
             print("updated segment length: ", length)
         
+        repeat = 0
         print("selecting done")
         #* 2. 해당 segment를 구성하는 이미지들을 이용하여 question에 대한 답변 도출
         #  해당 segment을 구성하는 이미지들의 caption, 이때까지의 captions 사용은 우선 보류
