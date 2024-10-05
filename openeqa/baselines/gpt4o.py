@@ -243,6 +243,7 @@ def main(args: argparse.Namespace):
         SEGMENT_LENGTH_LIMIT = args.length_limit
         repeat = 0
         while (length > SEGMENT_LENGTH_LIMIT):
+            previous_segment = best_segment
             print(f"\nsegment is too long. length limit is {SEGMENT_LENGTH_LIMIT}.\nlet's divide the segment and try again.")
             divide_segment = []
             middle_idx = int((best_segment[0]+best_segment[1])//2)
@@ -275,7 +276,7 @@ def main(args: argparse.Namespace):
             print("updated best segment: ", best_segment)
             length = best_segment[1] - best_segment[0] + 1
             # check best_segment == divide_segment
-            if best_segment in divide_segment:
+            if best_segment == previous_segment:
                 repeat += 1
                 print("repeat: ", repeat)
             
