@@ -113,6 +113,7 @@ def main(args: argparse.Namespace):
                 answer=item["answer"],
                 prediction=result["answer"],
                 extra_answers=extra_answers,
+                openai_model="gpt-4o",
             )
 
             all_scores[question_id] = score
