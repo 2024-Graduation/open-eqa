@@ -64,7 +64,7 @@ def select_best_segment(
     )
     
     # print("select_best_segment output: ", parse_description_output(output)) # {segment: [0, 1]}
-    segment = cached_descriptions.find_segment(episode_id=episode_id, my_description=parse_description_output(output))
+    segment = cached_descriptions.find_segment(episode_id=episode_id, my_description=parse_description_output(output), cand_segments=segments)
     return segment
 
 def get_final_answer(

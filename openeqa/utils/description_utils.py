@@ -33,11 +33,13 @@ class Descriptions():
                     return description["description"]
         return None
     
-    def find_segment(self, episode_id: str, my_description: str) -> Optional[Tuple[int, int]]:
+    def find_segment(self, episode_id: str, my_description: str, cand_segments: list) -> Optional[Tuple[int, int]]:
         if episode_id in self.descriptions_data.keys():
             descriptions_for_episode = self.descriptions_data[episode_id]
             for description in descriptions_for_episode:
-                if description["description"] == my_description:
+                # if description["description"] == my_description:
+                #     return description["segment"]
+                if (my_description in description["description"]) and (description["segment"] in cand_segments):
                     return description["segment"]
         
         print("my_description: ", my_description)

@@ -28,7 +28,7 @@ SEGMENT_LENGTH_LIMIT = 10
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--length-limit",
+        "--length-limit", # max-frames
         type=int,
         default=10,
         help="segment length limit (default: 10)",
@@ -100,7 +100,7 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     args.output_directory.mkdir(parents=True, exist_ok=True)
     SEGMENT_LENGTH_LIMIT = args.length_limit
-    print("num frames: {}".format(args.num_frames), end="")
+    print("num frames: {}, ".format(args.num_frames), end="")
     print(f"segment length limit: {SEGMENT_LENGTH_LIMIT}")
     args.output_path = args.output_directory / (
         args.dataset.stem + "-{}-{}-{}.json".format(args.model, args.num_frames, SEGMENT_LENGTH_LIMIT)
@@ -275,7 +275,6 @@ def main(args: argparse.Namespace):
             )
             print("updated best segment: ", best_segment)
             length = best_segment[1] - best_segment[0] + 1
-            # check best_segment == divide_segment
             if best_segment == previous_segment:
                 repeat += 1
                 print("repeat: ", repeat)
@@ -284,11 +283,11 @@ def main(args: argparse.Namespace):
                 print("=====================================================================================================")
                 print("cached descriptions: ")
                 print(cached_descriptions.descriptions_data)
-                print("cached captions: ")
+                print("\n\ncached captions: ")
                 print(cached_captions.captions_data)
                 print("selected segment: ", best_segment)
                 print("selected segment description: ", cached_descriptions.get_description(episode_id=episode_id, segment=best_segment))
-                raise ValueError("too many repeats")
+                raise ValueError("too many repeats: ", args.num_frames, args.length_limit)
 
             print("updated segment length: ", length)
         
