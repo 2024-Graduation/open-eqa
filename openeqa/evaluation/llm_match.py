@@ -32,7 +32,7 @@ def get_llm_match_score(
     prediction: str,
     extra_answers: Optional[list] = None,
     openai_key: Optional[str] = None,
-    openai_model: str = "gpt-4-1106-preview",
+    openai_model: str = "gpt-4o",
     openai_seed: int = 1234,
     openai_max_tokens: int = 32,
     openai_temperature: float = 0.2,

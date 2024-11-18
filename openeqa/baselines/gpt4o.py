@@ -8,20 +8,31 @@ import json
 import os
 import traceback
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import numpy as np
 import tqdm
 
+from openeqa.utils.description_utils import Descriptions, create_descriptions
 from openeqa.utils.openai_utils import (
     call_openai_api,
     prepare_openai_vision_messages,
     set_openai_key,
 )
+from openeqa.utils.caption_utils import Captions, create_caption
 from openeqa.utils.prompt_utils import load_prompt
+from openeqa.utils.videoagent import select_best_segment, get_final_answer
 
+
+SEGMENT_LENGTH_LIMIT = 10
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--length-limit", # max-frames
+        type=int,
+        default=10,
+        help="segment length limit (default: 10)",
+    ),
     parser.add_argument(
         "--dataset",
         type=Path,
@@ -67,7 +78,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-tokens",
         type=int,
-        default=128,
+        default=200,
         help="gpt maximum tokens (default: 128)",
     )
     parser.add_argument(
@@ -88,8 +99,11 @@ def parse_args() -> argparse.Namespace:
     )
     args = parser.parse_args()
     args.output_directory.mkdir(parents=True, exist_ok=True)
+    SEGMENT_LENGTH_LIMIT = args.length_limit
+    print("num frames: {}, ".format(args.num_frames), end="")
+    print(f"segment length limit: {SEGMENT_LENGTH_LIMIT}")
     args.output_path = args.output_directory / (
-        args.dataset.stem + "-{}-{}.json".format(args.model, args.seed)
+        args.dataset.stem + "-{}-{}-{}.json".format(args.model, args.num_frames, SEGMENT_LENGTH_LIMIT)
     )
     return args
 
@@ -119,7 +133,6 @@ def ask_question(
             messages=messages,
             model=openai_model,
             seed=openai_seed,
-            max_tokens=openai_max_tokens,
             temperature=openai_temperature,
         )
         return output
@@ -128,14 +141,36 @@ def ask_question(
             traceback.print_exc()
             raise e
 
+def get_segment_paths(
+        frames: list,
+        segment: Tuple[int, int]):
+    
+    return [str(frames[segment[0]]), str(frames[segment[1]])]
 
+def get_segment_single_path(
+        frames: list,
+        idx: int):
+    
+    return str(frames[idx])
+
+# 데이터를 재귀적으로 탐색하여 np.int64를 int로 변환하는 함수
+def convert_np_types(data):
+    if isinstance(data, dict):
+        return {key: convert_np_types(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [convert_np_types(element) for element in data]
+    elif isinstance(data, np.integer):
+        return int(data)
+    else:
+        return data
+    
 def main(args: argparse.Namespace):
     # check for openai api key
     assert "OPENAI_API_KEY" in os.environ
 
     # load dataset
-    dataset = json.load(args.dataset.open("r"))
-    print("found {:,} questions".format(len(dataset)))
+    qa_dataset = json.load(args.dataset.open("r"))
+    print("found {:,} questions".format(len(qa_dataset)))
 
     # load results
     results = []
@@ -144,8 +179,12 @@ def main(args: argparse.Namespace):
         print("found {:,} existing results".format(len(results)))
     completed = [item["question_id"] for item in results]
 
+    cached_captions = Captions()
+    cached_descriptions = Descriptions()
+
     # process data
-    for idx, item in enumerate(tqdm.tqdm(dataset)):
+    #* question 기준으로 iterate
+    for idx, item in enumerate(tqdm.tqdm(qa_dataset)):
         if args.dry_run and idx >= 5:
             break
 
@@ -154,24 +193,140 @@ def main(args: argparse.Namespace):
         if question_id in completed:
             continue  # skip existing
 
+###
+        episode_id = item['episode_history']
+
         # extract scene paths
         folder = args.frames_directory / item["episode_history"]
         frames = sorted(folder.glob("*-rgb.png"))
         indices = np.round(np.linspace(0, len(frames) - 1, args.num_frames)).astype(int)
         paths = [str(frames[i]) for i in indices]
 
-        # generate answer
+        segments = [(indices[i], indices[i + 1]) for i in range(len(indices) - 1)] # TUPLE LIST
+
+        #* 0. question 과 무관하게 추출된 프레임에 대해 image captioning
+        print("\nimage captioning ...", end="")
+        for image_path in paths:
+            # check if caption exists
+            if cached_captions.has_caption(episode_id=episode_id, image_idx=image_path) == True:
+                continue
+            # create caption
+            single_caption = create_caption(image_paths=[image_path])
+            # save the caption to memory
+            cached_captions.add_caption(caption=single_caption, episode_id=episode_id, image_path=image_path)
+        
+        print("captioning done\n")
+        print("create descriptions for segments ...", end="")
+        #* create description for each segment
+        for segment in segments:
+            description = create_descriptions(
+                episode_id=episode_id,
+                segment=segment,
+                cached_captions=cached_captions
+            )
+            cached_descriptions.add_description(description=description, episode_id=episode_id, segment=segment)
+        
+        print("descriptioning done\n")
+        #* 1. 가장 question dependent 한 segment 선택
         question = item["question"]
-        answer = ask_question(
+        print("Let's select the best q-dependent segment: ", question)
+
+        best_segment = select_best_segment(
             question=question,
-            image_paths=paths,
-            image_size=args.image_size,
-            openai_model=args.model,
-            openai_seed=args.seed,
-            openai_max_tokens=args.max_tokens,
-            openai_temperature=args.temperature,
-            force=args.force,
+            episode_id=episode_id,
+            segments=segments,
+            cached_descriptions=cached_descriptions
         )
+        length = best_segment[1] - best_segment[0] + 1
+        print("segment length: ", length)
+        
+        SEGMENT_LENGTH_LIMIT = args.length_limit
+        repeat = 0
+        while (length > SEGMENT_LENGTH_LIMIT):
+            previous_segment = best_segment
+            print(f"\nsegment is too long. length limit is {SEGMENT_LENGTH_LIMIT}.\nlet's divide the segment and try again.")
+            divide_segment = []
+            middle_idx = int((best_segment[0]+best_segment[1])//2)
+            divide_segment.append((best_segment[0], middle_idx))
+            divide_segment.append((middle_idx, best_segment[1]))
+            print("divided segments: ", divide_segment)
+            
+            middle_path = get_segment_single_path(frames=frames, idx=middle_idx)
+            if cached_captions.has_caption(episode_id=episode_id, image_idx=middle_idx) == False:
+                caption = create_caption(image_paths=[middle_path])
+                cached_captions.add_caption(episode_id=episode_id, image_path=middle_path, caption=caption)
+            
+            for segment in divide_segment:
+                if cached_descriptions.get_description(episode_id=episode_id, segment=segment):
+                    continue
+                
+                description = create_descriptions(
+                    episode_id=episode_id,
+                    segment=segment,
+                    cached_captions=cached_captions
+                )
+                cached_descriptions.add_description(description=description, episode_id=episode_id, segment=segment)
+
+            best_segment = select_best_segment(
+                question=question,
+                episode_id=episode_id,
+                segments=divide_segment,
+                cached_descriptions=cached_descriptions
+            )
+            print("updated best segment: ", best_segment)
+            length = best_segment[1] - best_segment[0] + 1
+            if best_segment == previous_segment:
+                repeat += 1
+                print("repeat: ", repeat)
+            
+            if repeat > 5:
+                print("=====================================================================================================")
+                print("cached descriptions: ")
+                print(cached_descriptions.descriptions_data)
+                print("\n\ncached captions: ")
+                print(cached_captions.captions_data)
+                print("selected segment: ", best_segment)
+                print("selected segment description: ", cached_descriptions.get_description(episode_id=episode_id, segment=best_segment))
+                raise ValueError("too many repeats: ", args.num_frames, args.length_limit)
+
+            print("updated segment length: ", length)
+        
+        repeat = 0
+        print("selecting done")
+        #* 2. 해당 segment를 구성하는 이미지들을 이용하여 question에 대한 답변 도출
+        #  해당 segment을 구성하는 이미지들의 caption, 이때까지의 captions 사용은 우선 보류
+        print("best segment: ", best_segment)
+        start_idx = best_segment[0]
+        end_idx = best_segment[1]
+        segment_paths = [str(frames[i]) for i in range(start_idx, end_idx+1)]
+        # for image_path in segment_paths:
+        #     caption = create_captions(image_paths=[image_path])
+        #     cached_captions.add_caption(caption=caption, episode_id=episode_id, image_path=image_path)
+
+        print("\nAlmost done. let's get the final answer.")
+        answer = get_final_answer(question=question, segment_paths=segment_paths)
+        # answer = get_final_answer(question=question, segment_paths=segment_paths, cached_captions=cached_captions)
+        # answer = get_final_answer(question=question, segment_paths=segment_paths, episode_id=episode_id, cached_descriptions=cached_descriptions)
+
+        '''try:
+            description_data_serializable = convert_np_types(cached_descriptions.descriptions_data)
+            caption_data_serializable = convert_np_types(cached_captions.captions_data)
+
+            # JSON 데이터를 파일로 저장
+            with open("description_data.json", 'w', encoding='utf-8') as file:
+                json.dump(description_data_serializable, file, ensure_ascii=False, indent=2)
+
+            # JSON 데이터를 파일로 저장
+            with open("caption_data.json", 'w', encoding='utf-8') as file:
+                json.dump(caption_data_serializable, file, ensure_ascii=False, indent=2)
+
+            print(f"description_data, caption_data 파일이 성공적으로 저장되었습니다.")
+        
+        except Exception as e:
+            print("file save failed : ", e)
+            # print("description data : \n", cached_descriptions.descriptions_data)
+            # print("captions_data: , \n", cached_captions.captions_data)'''
+
 
         # store results
         results.append({"question_id": question_id, "answer": answer})
